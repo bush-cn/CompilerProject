@@ -1,6 +1,30 @@
 package error;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 public class CompileError extends Exception{
+    // 在语法分析中，不能通过抛出处理，因此把错误都暂存到这里，最后统一输出
+    public static List<CompileError> errors = new ArrayList<>();
+
+    public static String outputString() {
+        errors.sort(Comparator.comparingInt(o -> o.line));
+        StringBuilder sb = new StringBuilder();
+        for (CompileError error : errors) {
+            sb.append(error.line)
+                    .append(" ")
+                    .append(error.errorType.toString())
+                    .append('\n');
+        }
+        return sb.toString();
+    }
+
+    public static void raiseError(int line, ErrorType errorType) {
+        errors.add(new CompileError(line, errorType));
+    }
+
     public int line;
 
     public enum ErrorType {
