@@ -164,7 +164,9 @@ public class Lexer {
                         if (ch == '\n') line++;
                         continue;
                     } else {
+                        br.mark(1);
                         if (readChar(br) && ch != '/') {
+                            br.reset();
                             if (ch == '\n') line++;
                             continue;
                         } else {
