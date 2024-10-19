@@ -25,6 +25,17 @@ public class CompileError extends Exception{
         errors.add(new CompileError(line, errorType));
     }
 
+    // 在Stmt中分析LVal时，进行回溯时CompileError也需要一并回溯
+    public static int mark() {
+        return errors.size();
+    }
+
+    public static void reset(int size) {
+        while (errors.size() > size) {
+            errors.remove(errors.size() - 1);
+        }
+    }
+
     public int line;
 
     public enum ErrorType {

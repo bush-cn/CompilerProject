@@ -1,5 +1,6 @@
 package frontend.parser.statement;
 
+import error.CompileError;
 import frontend.lexer.Token;
 import frontend.parser.Parser;
 import frontend.parser.SyntaxNode;
@@ -32,15 +33,19 @@ public class Stmt extends BlockItem implements SyntaxNode<BlockItem> {
             // 接下来区分LValStmt和ExpStmt
             // LValStmt只以LVal开头，但Exp也有可能以LVal开头
             // 排除调用函数Exp这一情况，这样只会是LVal造成IDENFR
+            // 回溯需要同时回溯tokenIndex和CompilerError
             int mark = Parser.markIndex();
+            int size = CompileError.mark();
             new LVal().parse(); // 吃掉一个LVal再判断
             Parser.getSymbol();
             if (Parser.currentSymbol().getTokenType() == Token.TokenType.ASSIGN) {
                 // 但LValStmt在LVal后会紧跟ASSIGN
                 Parser.reset(mark); // 回溯
+                CompileError.reset(size);
                 stmt = new LValStmt().parse();
             } else {
                 Parser.reset(mark);
+                CompileError.reset(size);
                 stmt = new ExpStmt().parse();
             }
         } else {
