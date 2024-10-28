@@ -16,6 +16,14 @@ public class VarDecl extends Decl implements SyntaxNode<BlockItem> {
 
     boolean hasSemicolon;
 
+    public Btype getBtype() {
+        return btype;
+    }
+
+    public List<VarDef> getVarDefs() {
+        return varDefs;
+    }
+
     @Override
     public VarDecl parse() throws IOException {
         btype = new Btype().parse();

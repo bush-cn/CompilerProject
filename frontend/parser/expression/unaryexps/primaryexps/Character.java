@@ -8,6 +8,10 @@ import frontend.parser.terminal.CharConst;
 public class Character extends PrimaryExp implements SyntaxNode<UnaryExp> {
     CharConst charConst;
 
+    public CharConst getCharConst() {
+        return charConst;
+    }
+
     @Override
     public Character parse() {
         charConst = new CharConst().parse();

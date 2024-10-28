@@ -16,6 +16,18 @@ public class FuncFParam implements SyntaxNode<FuncFParam> {
     boolean isArray; // 有中括号则为数组，否则不是
     boolean hasRBracket;
 
+    public Btype getBtype() {
+        return btype;
+    }
+
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public boolean isArray() {
+        return isArray;
+    }
+
     @Override
     public FuncFParam parse() throws IOException {
         btype = new Btype().parse();

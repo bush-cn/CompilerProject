@@ -15,6 +15,10 @@ public class ReturnStmt extends Stmt implements SyntaxNode<BlockItem> {
 
     boolean hasSemicolon;
 
+    public Exp getExp() {
+        return exp;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.RETURNTK;

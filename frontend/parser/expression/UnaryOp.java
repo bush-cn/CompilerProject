@@ -6,6 +6,11 @@ import frontend.parser.SyntaxNode;
 
 public class UnaryOp implements SyntaxNode<UnaryOp> {
     Token unaryToken; // +, -, !三者其一,  注：'!'仅出现在条件表达式中
+
+    public Token getUnaryToken() {
+        return unaryToken;
+    }
+
     @Override
     public UnaryOp parse() {
         unaryToken = Parser.currentSymbol();

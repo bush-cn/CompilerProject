@@ -6,6 +6,11 @@ import frontend.parser.SyntaxNode;
 
 public class StringConst implements SyntaxNode<StringConst> {
     Token stringConst;
+
+    public Token getStringConst() {
+        return stringConst;
+    }
+
     @Override
     public StringConst parse() {
         stringConst = Parser.currentSymbol();

@@ -12,6 +12,10 @@ import java.util.List;
 public class FuncRParams implements SyntaxNode<FuncRParams> {
     List<Exp> exps = new ArrayList<>();
 
+    public List<Exp> getExps() {
+        return exps;
+    }
+
     @Override
     public FuncRParams parse() throws IOException {
         exps.add(new Exp().parse());

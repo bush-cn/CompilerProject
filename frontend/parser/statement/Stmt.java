@@ -12,6 +12,10 @@ import java.io.IOException;
 public class Stmt extends BlockItem implements SyntaxNode<BlockItem> {
     Stmt stmt; // stmts包里的子类其中一个
 
+    public Stmt getStmt() {
+        return stmt;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         Token.TokenType tokenType = Parser.currentSymbol().getTokenType();

@@ -14,6 +14,10 @@ public class ExpStmt extends Stmt implements SyntaxNode<BlockItem> {
     Exp exp = null; // exp为null时代表此项不存在
 
     boolean hasSemicolon;
+    public Exp getExp() {
+        return exp;
+    }
+
 
     @Override
     public Stmt parse() throws IOException {

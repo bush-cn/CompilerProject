@@ -11,6 +11,11 @@ import java.io.IOException;
 
 public class UnaryExp implements SyntaxNode<UnaryExp> {
     UnaryExp unaryExp; // unaryexps包里的子类之一
+
+    public UnaryExp getUnaryExp() {
+        return unaryExp;
+    }
+
     @Override
     public UnaryExp parse() throws IOException {
         Token.TokenType tokenType = Parser.currentSymbol().getTokenType();

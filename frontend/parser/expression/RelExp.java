@@ -32,6 +32,14 @@ public class RelExp implements SyntaxNode<RelExp> {
 
     List<OpAddExp> opAddExps = new ArrayList<>();
 
+    public AddExp getAddExp() {
+        return addExp;
+    }
+
+    public List<OpAddExp> getOpAddExps() {
+        return opAddExps;
+    }
+
     @Override
     public RelExp parse() throws IOException {
         addExp = new AddExp().parse();

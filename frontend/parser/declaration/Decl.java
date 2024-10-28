@@ -11,6 +11,11 @@ import java.io.IOException;
 public class Decl extends BlockItem implements SyntaxNode<BlockItem> {
     // Decl的子类ConstDecl或VarDecl之一，因此输出字符串时不用重复输出
     Decl decl;
+
+    public Decl getDecl() {
+        return decl;
+    }
+
     @Override
     public Decl parse() throws IOException{
         if (Parser.currentSymbol().getTokenType() == Token.TokenType.CONSTTK) {

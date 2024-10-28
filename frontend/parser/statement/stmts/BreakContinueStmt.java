@@ -14,6 +14,10 @@ public class BreakContinueStmt extends Stmt implements SyntaxNode<BlockItem> {
 
     boolean hasSemicolon;
 
+    public Token getBreakOrContinue() {
+        return breakOrContinue;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         breakOrContinue = Parser.currentSymbol();

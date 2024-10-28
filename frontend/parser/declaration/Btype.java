@@ -8,6 +8,10 @@ public class Btype implements SyntaxNode<Btype> {
     // Btype为INTTK或CHARTK二选一，也不用出现在outputString里
     Token btypeToken;
 
+    public Token getBtypeToken() {
+        return btypeToken;
+    }
+
     @Override
     public Btype parse() {
         btypeToken = Parser.currentSymbol();

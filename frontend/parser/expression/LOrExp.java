@@ -29,6 +29,14 @@ public class LOrExp implements SyntaxNode<LOrExp> {
 
     List<OpLAndExp> opLAndExps = new ArrayList<>();
 
+    public LAndExp getlAndExp() {
+        return lAndExp;
+    }
+
+    public List<OpLAndExp> getOpLAndExps() {
+        return opLAndExps;
+    }
+
     @Override
     public LOrExp parse() throws IOException {
         lAndExp = new LAndExp().parse();

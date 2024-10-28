@@ -12,6 +12,14 @@ public class ForStmt implements SyntaxNode<ForStmt> {
     LVal lVal;
     Exp exp;
 
+    public LVal getlVal() {
+        return lVal;
+    }
+
+    public Exp getExp() {
+        return exp;
+    }
+
     @Override
     public ForStmt parse() throws IOException {
         lVal = new LVal().parse();

@@ -10,6 +10,10 @@ import java.io.IOException;
 public class BlockStmt extends Stmt implements SyntaxNode<BlockItem> {
     Block block;
 
+    public Block getBlock() {
+        return block;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         block = new Block().parse();

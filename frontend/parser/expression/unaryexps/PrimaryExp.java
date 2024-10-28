@@ -14,6 +14,11 @@ import java.util.Set;
 
 public class PrimaryExp extends UnaryExp implements SyntaxNode<UnaryExp> {
     PrimaryExp primaryExp; // praimaryexps包里的子类之一
+
+    public PrimaryExp getPrimaryExp() {
+        return primaryExp;
+    }
+
     @Override
     public PrimaryExp parse() throws IOException {
         Token.TokenType tokenType = Parser.currentSymbol().getTokenType();

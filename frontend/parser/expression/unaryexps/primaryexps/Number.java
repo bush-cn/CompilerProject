@@ -8,6 +8,10 @@ import frontend.parser.terminal.IntConst;
 public class Number extends PrimaryExp implements SyntaxNode<UnaryExp> {
     IntConst intConst;
 
+    public IntConst getIntConst() {
+        return intConst;
+    }
+
     @Override
     public Number parse() {
         intConst = new IntConst().parse();

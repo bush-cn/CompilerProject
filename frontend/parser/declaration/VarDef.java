@@ -18,6 +18,18 @@ public class VarDef implements SyntaxNode<VarDef> {
 
     boolean hasRBracket;
 
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public ConstExp getConstExp() {
+        return constExp;
+    }
+
+    public InitVal getInitVal() {
+        return initVal;
+    }
+
     @Override
     public VarDef parse() throws IOException {
         ident = new Ident().parse();

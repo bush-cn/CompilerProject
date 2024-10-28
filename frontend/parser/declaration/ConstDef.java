@@ -17,6 +17,18 @@ public class ConstDef implements SyntaxNode<ConstDef> {
 
     boolean hasRBracket;
 
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public ConstExp getConstExp() {
+        return constExp;
+    }
+
+    public ConstInitVal getConstInitVal() {
+        return constInitVal;
+    }
+
     @Override
     public ConstDef parse() throws IOException {
         ident = new Ident().parse();

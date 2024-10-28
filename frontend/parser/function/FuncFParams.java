@@ -11,6 +11,10 @@ import java.util.List;
 public class FuncFParams implements SyntaxNode<FuncFParams> {
     List<FuncFParam> funcFParams = new ArrayList<>();
 
+    public List<FuncFParam> getFuncFParams() {
+        return funcFParams;
+    }
+
     @Override
     public FuncFParams parse() throws IOException {
         funcFParams.add(new FuncFParam().parse());

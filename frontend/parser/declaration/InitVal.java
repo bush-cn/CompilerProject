@@ -22,6 +22,18 @@ public class InitVal implements SyntaxNode<InitVal> {
     // 需要注意有可能是数组但长度为0，即constExps为空列表
     boolean isArray;
 
+    public StringConst getStringConst() {
+        return stringConst;
+    }
+
+    public List<Exp> getExps() {
+        return exps;
+    }
+
+    public boolean isArray() {
+        return isArray;
+    }
+
     @Override
     public InitVal parse() throws IOException {
         if (Parser.currentSymbol().getTokenType() == Token.TokenType.STRCON) {

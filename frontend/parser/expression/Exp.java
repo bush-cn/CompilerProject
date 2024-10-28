@@ -18,6 +18,10 @@ public class Exp implements SyntaxNode<Exp> {
 
     AddExp addExp;
 
+    public AddExp getAddExp() {
+        return addExp;
+    }
+
     @Override
     public Exp parse() throws IOException {
         addExp = new AddExp().parse();

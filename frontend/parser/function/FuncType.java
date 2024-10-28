@@ -6,6 +6,11 @@ import frontend.parser.SyntaxNode;
 
 public class FuncType implements SyntaxNode<FuncType> {
     Token funcTypeToken; // int, char, void三选一
+
+    public Token getFuncTypeToken() {
+        return funcTypeToken;
+    }
+
     @Override
     public FuncType parse() {
         funcTypeToken = Parser.currentSymbol();

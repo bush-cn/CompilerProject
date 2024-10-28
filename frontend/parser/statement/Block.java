@@ -11,6 +11,10 @@ import java.util.List;
 public class Block implements SyntaxNode<Block> {
     List<BlockItem> blockItems = new ArrayList<>();
 
+    public List<BlockItem> getBlockItems() {
+        return blockItems;
+    }
+
     @Override
     public Block parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.LBRACE;

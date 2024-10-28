@@ -29,6 +29,14 @@ public class AddExp implements SyntaxNode<AddExp> {
 
     List<OpMulExp> opMulExps = new ArrayList<>();
 
+    public MulExp getMulExp() {
+        return mulExp;
+    }
+
+    public List<OpMulExp> getOpMulExps() {
+        return opMulExps;
+    }
+
     @Override
     public AddExp parse() throws IOException {
         mulExp = new MulExp().parse();

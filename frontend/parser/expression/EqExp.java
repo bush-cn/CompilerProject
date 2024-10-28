@@ -29,6 +29,14 @@ public class EqExp implements SyntaxNode<EqExp> {
 
     List<OpRelExp> opRelExps = new ArrayList<>();
 
+    public RelExp getRelExp() {
+        return relExp;
+    }
+
+    public List<OpRelExp> getOpRelExps() {
+        return opRelExps;
+    }
+
     @Override
     public EqExp parse() throws IOException {
         relExp = new RelExp().parse();

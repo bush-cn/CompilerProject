@@ -17,6 +17,22 @@ public class FuncDef implements SyntaxNode<FuncDef> {
 
     boolean hasRParenthesis;
 
+    public FuncType getFuncType() {
+        return funcType;
+    }
+
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public FuncFParams getFuncFParams() {
+        return funcFParams;
+    }
+
+    public Block getBlock() {
+        return block;
+    }
+
     @Override
     public FuncDef parse() throws IOException {
         funcType = new FuncType().parse();

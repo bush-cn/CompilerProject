@@ -15,6 +15,10 @@ public class ParenthesisExp extends PrimaryExp implements SyntaxNode<UnaryExp> {
 
     boolean hasRParenthesis;
 
+    public Exp getExp() {
+        return exp;
+    }
+
     @Override
     public ParenthesisExp parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.LPARENT;

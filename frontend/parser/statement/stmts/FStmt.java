@@ -15,6 +15,23 @@ public class FStmt extends Stmt implements SyntaxNode<BlockItem> {
     Cond cond = null; // null代表此项不存在
     Stmt stmt;
 
+    public ForStmt getPreForStmt() {
+        return preForStmt;
+    }
+
+    public ForStmt getPostForStmt() {
+        return postForStmt;
+    }
+
+    public Cond getCond() {
+        return cond;
+    }
+
+    @Override
+    public Stmt getStmt() {
+        return stmt;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         // for语句不会出现分号或括号缺失

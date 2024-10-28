@@ -13,6 +13,10 @@ public class MainFuncDef implements SyntaxNode<MainFuncDef> {
 
     boolean hasRParenthesis;
 
+    public Block getBlock() {
+        return block;
+    }
+
     @Override
     public MainFuncDef parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.INTTK;

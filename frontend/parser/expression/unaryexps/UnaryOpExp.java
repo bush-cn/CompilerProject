@@ -11,6 +11,15 @@ public class UnaryOpExp extends UnaryExp implements SyntaxNode<UnaryExp> {
     UnaryOp unaryOp;
     UnaryExp unaryExp;
 
+    public UnaryOp getUnaryOp() {
+        return unaryOp;
+    }
+
+    @Override
+    public UnaryExp getUnaryExp() {
+        return unaryExp;
+    }
+
     @Override
     public UnaryExp parse() throws IOException {
         unaryOp = new UnaryOp().parse();

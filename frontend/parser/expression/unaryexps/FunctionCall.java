@@ -18,6 +18,14 @@ public class FunctionCall extends UnaryExp implements SyntaxNode<UnaryExp> {
 
     boolean hasRParenthesis;
 
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public FuncRParams getFuncRParams() {
+        return funcRParams;
+    }
+
     @Override
     public UnaryExp parse() throws IOException {
         ident = new Ident().parse();

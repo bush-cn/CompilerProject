@@ -16,6 +16,14 @@ public class ConstDecl extends Decl implements SyntaxNode<BlockItem> {
 
     boolean hasSemicolon;
 
+    public Btype getBtype() {
+        return btype;
+    }
+
+    public List<ConstDef> getConstDefs() {
+        return constDefs;
+    }
+
     @Override
     public ConstDecl parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.CONSTTK;

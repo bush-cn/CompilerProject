@@ -9,6 +9,11 @@ import java.io.IOException;
 
 public class BlockItem implements SyntaxNode<BlockItem> {
     BlockItem blockItem; // Decl或Stmt，且Decl和Stmt均为BlockItem子类
+
+    public BlockItem getBlockItem() {
+        return blockItem;
+    }
+
     @Override
     public BlockItem parse() throws IOException {
         if (Parser.currentSymbol().getTokenType() == Token.TokenType.INTTK

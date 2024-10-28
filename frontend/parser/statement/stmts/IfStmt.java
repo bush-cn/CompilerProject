@@ -18,6 +18,19 @@ public class IfStmt extends Stmt implements SyntaxNode<BlockItem> {
 
     boolean hasRParenthesis;
 
+    public Cond getCond() {
+        return cond;
+    }
+
+    @Override
+    public Stmt getStmt() {
+        return stmt;
+    }
+
+    public Stmt getElseStmt() {
+        return elseStmt;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.IFTK;

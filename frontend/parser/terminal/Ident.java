@@ -7,6 +7,10 @@ import frontend.parser.SyntaxNode;
 public class Ident implements SyntaxNode<Ident> {
     Token ident;
 
+    public Token getIdent() {
+        return ident;
+    }
+
     @Override
     public Ident parse() {
         ident = Parser.currentSymbol();

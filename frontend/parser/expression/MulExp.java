@@ -29,6 +29,14 @@ public class MulExp implements SyntaxNode<MulExp> {
 
     List<OpUnaryExp> opUnaryExps = new ArrayList<>();
 
+    public UnaryExp getUnaryExp() {
+        return unaryExp;
+    }
+
+    public List<OpUnaryExp> getOpUnaryExps() {
+        return opUnaryExps;
+    }
+
     @Override
     public MulExp parse() throws IOException {
         unaryExp = new UnaryExp().parse();

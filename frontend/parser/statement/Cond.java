@@ -8,6 +8,10 @@ import java.io.IOException;
 public class Cond implements SyntaxNode<Cond> {
     LOrExp lOrExp;
 
+    public LOrExp getlOrExp() {
+        return lOrExp;
+    }
+
     @Override
     public Cond parse() throws IOException {
         lOrExp = new LOrExp().parse();

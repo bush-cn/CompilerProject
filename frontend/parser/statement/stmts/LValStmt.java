@@ -26,6 +26,22 @@ public class LValStmt extends Stmt implements SyntaxNode<BlockItem> {
 
     boolean getHasSemicolon; // 输入用
 
+    public boolean isAssignment() {
+        return isAssignment;
+    }
+
+    public LVal getlVal() {
+        return lVal;
+    }
+
+    public Exp getAssgnExp() {
+        return assgnExp;
+    }
+
+    public Token getGetIntOrGetChar() {
+        return getIntOrGetChar;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         lVal = new LVal().parse();

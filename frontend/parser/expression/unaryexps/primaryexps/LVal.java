@@ -17,6 +17,14 @@ public class LVal extends PrimaryExp implements SyntaxNode<UnaryExp> {
 
     boolean hasRBracket;
 
+    public Ident getIdent() {
+        return ident;
+    }
+
+    public Exp getExp() {
+        return exp;
+    }
+
     @Override
     public LVal parse() throws IOException {
         ident = new Ident().parse();

@@ -7,6 +7,10 @@ import frontend.parser.SyntaxNode;
 public class IntConst implements SyntaxNode<IntConst> {
     Token intConst;
 
+    public Token getIntConst() {
+        return intConst;
+    }
+
     @Override
     public IntConst parse() {
         intConst = Parser.currentSymbol();

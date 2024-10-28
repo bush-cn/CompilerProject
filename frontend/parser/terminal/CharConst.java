@@ -7,6 +7,10 @@ import frontend.parser.SyntaxNode;
 public class CharConst implements SyntaxNode<CharConst> {
     Token charConst;
 
+    public Token getCharConst() {
+        return charConst;
+    }
+
     @Override
     public CharConst parse() {
         charConst = Parser.currentSymbol();

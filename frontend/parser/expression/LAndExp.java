@@ -29,6 +29,14 @@ public class LAndExp implements SyntaxNode<LAndExp> {
 
     List<OpEqExp> opEqExps = new ArrayList<>();
 
+    public EqExp getEqExp() {
+        return eqExp;
+    }
+
+    public List<OpEqExp> getOpEqExps() {
+        return opEqExps;
+    }
+
     @Override
     public LAndExp parse() throws IOException {
         eqExp = new EqExp().parse();

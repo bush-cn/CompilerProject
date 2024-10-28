@@ -22,6 +22,14 @@ public class PrintfStmt extends Stmt implements SyntaxNode<BlockItem> {
 
     boolean hasSemicolon;
 
+    public StringConst getStringConst() {
+        return stringConst;
+    }
+
+    public List<Exp> getExps() {
+        return exps;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.PRINTFTK;
