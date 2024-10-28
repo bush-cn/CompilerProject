@@ -27,7 +27,7 @@ public class Parser {
     // 用于i, j, k错误时返回前一个token所在行号
     public static int preTokenLine() {
         if (parser.symbolIndex > 1) {
-            return tokenList.get(parser.symbolIndex - 2).getLine();
+            return parser.tokenList.get(parser.symbolIndex - 2).getLine();
         } else {
             return 0; // 实际上不会发生
         }
@@ -38,15 +38,7 @@ public class Parser {
     }
 
     // Token序列
-    public static final List<Token> tokenList = new ArrayList<>();
-
-    public void runLexer(BufferedReader br) throws IOException {
-        lexer.setBufferedReader(br);
-        Token token;
-        while ((token = lexer.getToken()) != null) {
-            tokenList.add(token);
-        }
-    }
+    public List<Token> tokenList;
 
     // 下一个要读取的符号token索引
     private int symbolIndex = 0;
@@ -56,8 +48,8 @@ public class Parser {
 
     // 读入一个符号到symbol，且索引+1
     public static void getSymbol() {
-        if (parser.symbolIndex < tokenList.size()) {
-            parser.symbol = tokenList.get(parser.symbolIndex);
+        if (parser.symbolIndex < parser.tokenList.size()) {
+            parser.symbol = parser.tokenList.get(parser.symbolIndex);
             parser.symbolIndex++;
         } else {
             parser.symbol = Token.EOF;
@@ -70,8 +62,8 @@ public class Parser {
 
     // 返回预读的下一个符号
     public static Token preReadNext() {
-        if (parser.symbolIndex < tokenList.size()) {
-            return tokenList.get(parser.symbolIndex);
+        if (parser.symbolIndex < parser.tokenList.size()) {
+            return parser.tokenList.get(parser.symbolIndex);
         } else {
             return Token.EOF;
         }
@@ -79,8 +71,8 @@ public class Parser {
 
     // 返回预读的下下个符号
     public static Token preReadNextNext() {
-        if ((parser.symbolIndex + 1) < tokenList.size()) {
-            return tokenList.get(parser.symbolIndex + 1);
+        if ((parser.symbolIndex + 1) < parser.tokenList.size()) {
+            return parser.tokenList.get(parser.symbolIndex + 1);
         } else {
             return Token.EOF;
         }
@@ -94,11 +86,17 @@ public class Parser {
 
     public static void reset(int markIndex) {
         parser.symbolIndex = markIndex;
-        parser.symbol = tokenList.get(parser.symbolIndex - 1);
+        parser.symbol = parser.tokenList.get(parser.symbolIndex - 1);
     }
 
-    public CompUnit parse(BufferedReader br) throws IOException {
-        runLexer(br);
+    /**
+     * 对外接口
+     * @param tokenList token序列
+     * @return 语法树CompUnit类
+     * @throws IOException
+     */
+    public CompUnit parse(List<Token> tokenList) throws IOException {
+        parser.tokenList = tokenList;
         getSymbol();
         return new CompUnit().parse();
     }

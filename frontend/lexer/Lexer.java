@@ -4,7 +4,9 @@ import error.CompileError;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,16 +21,6 @@ public class Lexer {
         return lexer;
     }
 
-    BufferedReader br;
-
-    public void setBufferedReader(BufferedReader br) {
-        this.br = br;
-    }
-
-    public BufferedReader getBufferedReader() {
-        return br;
-    }
-
     int line = 1;
 
     public int getLine() {
@@ -38,12 +30,27 @@ public class Lexer {
     char ch;
 
     /**
+     * 对外接口
+     * @param br 缓存字符读取器
+     * @return tokenList
+     * @throws IOException
+     */
+    public List<Token> lex(BufferedReader br) throws IOException {
+        List<Token> tokenList = new ArrayList<>();
+        Token token;
+        while ((token = getToken(br)) != null) {
+            tokenList.add(token);
+        }
+        return tokenList;
+    }
+
+    /**
      * 当且仅当读到文件流末尾时返回null
      * @throws IOException 文件I/O错误
      * @return br流解析到的下一个Token
      *
      */
-    public Token getToken() throws IOException {
+    public Token getToken(BufferedReader br) throws IOException {
         // 跳过空白符
         do {
             if(!readChar(br)) return null;
@@ -154,7 +161,7 @@ public class Lexer {
                     }
                 } // 即while(readChar(br) && ch != '\n')但会警告
                 // 嵌套调用，未读到EOF不能返回null
-                return lexer.getToken();
+                return lexer.getToken(br);
             }
             else if (ch == '*') {
                 // 多行注释
@@ -175,7 +182,7 @@ public class Lexer {
                     }
                 }
                 // 嵌套调用，未读到EOF不能返回null
-                return lexer.getToken();
+                return lexer.getToken(br);
             }
             else {
                 br.reset();

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Compiler {
+    static Lexer lexer = Lexer.getInstance();
     static Parser parser = Parser.getInstance();
 
     public static void main(String[] args) {
@@ -18,7 +19,8 @@ public class Compiler {
                      new BufferedWriter(new FileWriter("parser.txt"));
                 BufferedWriter bwErr =
                      new BufferedWriter(new FileWriter("error.txt"))){
-            CompUnit compUnit = parser.parse(br);
+            List<Token> tokenList = lexer.lex(br);
+            CompUnit compUnit = parser.parse(tokenList);
 
             // 输出结果
             bw.write(compUnit.outputString());
