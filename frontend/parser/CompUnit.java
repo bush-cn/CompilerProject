@@ -15,6 +15,18 @@ public class CompUnit implements SyntaxNode<CompUnit>{
     List<FuncDef> funcDefs = new ArrayList<>();
     MainFuncDef mainFuncDef;
 
+    public List<Decl> getDecls() {
+        return decls;
+    }
+
+    public List<FuncDef> getFuncDefs() {
+        return funcDefs;
+    }
+
+    public MainFuncDef getMainFuncDef() {
+        return mainFuncDef;
+    }
+
     @Override
     public CompUnit parse() throws IOException {
         // {Decl}部分
