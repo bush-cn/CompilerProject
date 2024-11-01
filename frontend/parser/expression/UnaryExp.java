@@ -16,6 +16,10 @@ public class UnaryExp implements SyntaxNode<UnaryExp> {
     List<UnaryOp> unaryOps = new ArrayList<>();
     UnaryExp unaryExp; // unaryexps包里的子类之一
 
+    public List<UnaryOp> getUnaryOps() {
+        return unaryOps;
+    }
+
     public UnaryExp getUnaryExp() {
         return unaryExp;
     }
