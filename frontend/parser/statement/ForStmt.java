@@ -10,6 +10,10 @@ import java.io.IOException;
 
 public class ForStmt implements SyntaxNode<ForStmt> {
     LVal lVal;
+    int lValLine;
+    public int getLValLine() {
+        return lValLine;
+    }
     Exp exp;
 
     public LVal getlVal() {
@@ -23,6 +27,7 @@ public class ForStmt implements SyntaxNode<ForStmt> {
     @Override
     public ForStmt parse() throws IOException {
         lVal = new LVal().parse();
+        lValLine = Parser.currentLine();
 
         Parser.getSymbol();
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.ASSIGN;

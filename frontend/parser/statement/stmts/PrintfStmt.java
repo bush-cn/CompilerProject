@@ -17,6 +17,7 @@ public class PrintfStmt extends Stmt implements SyntaxNode<BlockItem> {
     StringConst stringConst;
 
     List<Exp> exps = new ArrayList<>();
+    int printfLine;
 
     boolean hasRParenthesis;
 
@@ -30,9 +31,14 @@ public class PrintfStmt extends Stmt implements SyntaxNode<BlockItem> {
         return exps;
     }
 
+    public int getPrintfLine() {
+        return printfLine;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.PRINTFTK;
+        printfLine = Parser.currentLine();
 
         Parser.getSymbol();
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.LPARENT;

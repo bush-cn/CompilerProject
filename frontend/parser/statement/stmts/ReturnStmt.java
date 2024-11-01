@@ -12,6 +12,7 @@ import java.io.IOException;
 
 public class ReturnStmt extends Stmt implements SyntaxNode<BlockItem> {
     Exp exp = null; // 值为null时代表无Exp
+    int returnLine;
 
     boolean hasSemicolon;
 
@@ -19,9 +20,14 @@ public class ReturnStmt extends Stmt implements SyntaxNode<BlockItem> {
         return exp;
     }
 
+    public int getReturnLine() {
+        return returnLine;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.RETURNTK;
+        returnLine = Parser.currentLine();
         int line = Parser.currentLine();
 
         if (Exp.firstSetOfExp.contains(Parser.preReadNext().getTokenType())) {

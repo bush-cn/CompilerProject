@@ -11,6 +11,7 @@ import java.io.IOException;
 
 public class BreakContinueStmt extends Stmt implements SyntaxNode<BlockItem> {
     Token breakOrContinue;
+    int breakOrContinueLine;
 
     boolean hasSemicolon;
 
@@ -18,9 +19,14 @@ public class BreakContinueStmt extends Stmt implements SyntaxNode<BlockItem> {
         return breakOrContinue;
     }
 
+    public int getBreakOrContinueLine() {
+        return breakOrContinueLine;
+    }
+
     @Override
     public Stmt parse() throws IOException {
         breakOrContinue = Parser.currentSymbol();
+        breakOrContinueLine = Parser.currentLine();
         int line = Parser.currentLine();
 
         if (Parser.preReadNext().getTokenType() == Token.TokenType.SEMICN) {

@@ -10,11 +10,15 @@ import java.util.List;
 
 public class Block implements SyntaxNode<Block> {
     List<BlockItem> blockItems = new ArrayList<>();
+    public int rBraceLine;
 
     public List<BlockItem> getBlockItems() {
         return blockItems;
     }
 
+    public int getRBraceLine() {
+        return rBraceLine;
+    }
     @Override
     public Block parse() throws IOException {
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.LBRACE;
@@ -22,6 +26,7 @@ public class Block implements SyntaxNode<Block> {
         while (true) {
             Parser.getSymbol();
             if (Parser.currentSymbol().getTokenType() == Token.TokenType.RBRACE) {
+                rBraceLine = Parser.currentLine();
                 break;
             } else {
                 blockItems.add(new BlockItem().parse());

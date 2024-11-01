@@ -17,6 +17,12 @@ import java.io.IOException;
 public class LValStmt extends Stmt implements SyntaxNode<BlockItem> {
     boolean isAssignment; // 若为true则是赋值语句，否则是getint或getchar语句
     LVal lVal; // 两者公用
+
+    int lValLine;// 语义分析新增
+    public int getLValLine() {
+        return lValLine;
+    }
+
     Exp assgnExp; // 赋值用
     boolean assignHasSemicolon; // 赋值用
 
@@ -45,6 +51,7 @@ public class LValStmt extends Stmt implements SyntaxNode<BlockItem> {
     @Override
     public Stmt parse() throws IOException {
         lVal = new LVal().parse();
+        lValLine = Parser.currentLine();
 
         Parser.getSymbol();
         assert Parser.currentSymbol().getTokenType() == Token.TokenType.ASSIGN;
