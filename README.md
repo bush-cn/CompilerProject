@@ -250,6 +250,49 @@ PL/0编译程序采用一遍扫描，以语法分析为核心，由它调用词�
 - 设计一个单例`Visitor`类，其包含不同语法成分的`visit()`方法，解析语法树并调用下层的`visit()`方法。
 - 仅`visit(CompUnit compUnit)`方法为`public`以便外层调用，其余语法成分的`visit()`方法设置为`private`被其调用。
 
+## 5.2 编码后的设计
+
+### 5.2.1 符号和符号表的类设计
+
+- 符号类`Symbol`设置为抽象类：`ConstInt, ConstChar, ConstIntArray, ConstCharArray, ConstInt, ConstChar, ConstIntArray, ConstCharArray`这8种符号每种各设置一个子类`xxxSymbol`继承`Symbol`；`IntFunc, CharFunc, VoidFunc`这3种符号设计一个子类`FuncSymbol`；共9个继承。
+
+- 符号表需要维持树状结构，因此添加`fatherTable`这一属性。构造方法如下：
+
+  ```java
+  public SymbolTable(SymbolTable fatherTable) {
+      this.fatherTable = fatherTable;
+      this.scopeId = scopeIdCounter++;
+      fatherTable.childrenTables.add(this);
+  }
+  private SymbolTable() {
+      this.fatherTable = null;
+      this.scopeId = scopeIdCounter++;
+  }
+  ```
+
+  其中根符号表作为静态属性存储以便输出：
+
+  ```java
+  public static final SymbolTable ROOT = new SymbolTable(); // 根符号表，即全局符号表
+  ```
+
+### 5.2.2 访问者设计
+
+- 访问者总体结构与 #5.1 编码前的设计相同；
+- 在访问者中维护一个`curSymbolTab`属性保存当前的符号表；
+- 另有其他属性用来辅助语义分析（直接作为Visitor属性就不用在方法中传递参数了）。
+
+### 5.2.3 语义分析后的改动
+
+- 解耦词法分析器和语法分析器，优化了对外接口
+- 为语法成分属性添加Getter
+- UnaryExp → UnaryOp UnaryExp这条规则不应拆分子类而应把UnaryOp作为UnaryExp的属性
+- 重构多条规则语法成分：将Stmt、BlockItem、PrimaryExp中的自反属性删去；将UnaryExp中的属性更名为UnaryExpWithoutOp。这样避免了在语义分析时，使用`unaryExp.getUnaryExp(), primaryExp.getPrimaryExp(), stmt.getStmt() instanceof ReturnStmt`等等冗余且易出错的调用。
+
+### 5.2.4 完成后的思考
+
+相比于语法分析，这次的主要代码均在一个文件下（`Visitor.java`），耦合度高、模块化差、难以阅读和调试。但由于这次只是部分的语义分析，不涉及中间代码生成，因此期待在后面的迭代中优化结构、解耦合。
+
 # 代码生成设计
 
 # 代码优化设计
@@ -263,3 +306,4 @@ PL/0编译程序采用一遍扫描，以语法分析为核心，由它调用词�
 >- 2024.9.24：完成词法分析，完成文档#1、#2、#3
 >- 2024.10.14：完成语法分析及此部分文档#4，修改#2.2，新增#3.2.3
 >- 2024.10.19：在期中模拟考发现回溯时未回溯已抛出错误导致多输出错误，修改#4.2.5
+>- 2024.11.2：完成语义分析，完成文档#5
