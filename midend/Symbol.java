@@ -1,6 +1,6 @@
 package midend;
 
-public class Symbol {
+public abstract class Symbol {
     public SymbolTable tableIn;
 
     public String name;
