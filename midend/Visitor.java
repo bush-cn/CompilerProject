@@ -15,7 +15,6 @@ import frontend.parser.function.FuncFParams;
 import frontend.parser.function.MainFuncDef;
 import frontend.parser.statement.*;
 import frontend.parser.statement.stmts.*;
-import frontend.parser.terminal.StringConst;
 import midend.symbols.*;
 
 import java.util.ArrayList;
@@ -124,7 +123,7 @@ public class Visitor {
     }
 
     private void visitMulExp(MulExp mulExp) {
-//        int result = calUnaryExp(mulExp.getUnaryExp());
+//        int result = calUnaryExp(mulExp.getUnaryExpWithoutOp());
 //        for (MulExp.OpUnaryExp opUnaryExp: mulExp.getOpUnaryExps()) {
 //            int u = calUnaryExp(opUnaryExp.unaryExp);
 //            switch (opUnaryExp.op.getTokenType()) {
@@ -142,8 +141,8 @@ public class Visitor {
 
     // 当unaryExp是functionCall时，无法直接在语义分析中计算其值！
     private void visitUnaryExp(UnaryExp unaryExp) {
-        if (unaryExp.getUnaryExp() instanceof FunctionCall) {
-            FunctionCall functionCall = (FunctionCall) unaryExp.getUnaryExp();
+        if (unaryExp.getUnaryExpWithoutOp() instanceof FunctionCall) {
+            FunctionCall functionCall = (FunctionCall) unaryExp.getUnaryExpWithoutOp();
             // 不会出现调用函数的标识符类型不匹配这种错误（“将变量当作函数调用”）
             // 检查使用未定义符号（错误c）
             Token funcName = functionCall.getIdent().getIdent();
@@ -174,8 +173,8 @@ public class Visitor {
                 Exp exp = functionCall.getFuncRParams().getExps().get(i);
                 visitExp(exp);
                 // 【如果传值为数组类型，则应由FuncRParam一路推导至Ident，不存在任何其他符号】
-                if (exp.getAddExp().getMulExp().getUnaryExp().getUnaryExp() instanceof PrimaryExp primaryExp) {
-                    if (primaryExp.getPrimaryExp() instanceof LVal lVal) {
+                if (exp.getAddExp().getMulExp().getUnaryExp().getUnaryExpWithoutOp() instanceof PrimaryExp primaryExp) {
+                    if (primaryExp instanceof LVal lVal) {
                         Token t = lVal.getIdent().getIdent();
                         Symbol s = curSymbolTab.lookupSymbol(t.getValue());
                         // 常量数组不作为参数传入到函数中
@@ -217,10 +216,10 @@ public class Visitor {
             }
         } else {
             // unaryExp instanceof PrimaryExp
-            PrimaryExp primaryExp = (PrimaryExp) unaryExp.getUnaryExp();
-            if (primaryExp.getPrimaryExp() instanceof ParenthesisExp parenthesisExp) {
+            PrimaryExp primaryExp = (PrimaryExp) unaryExp.getUnaryExpWithoutOp();
+            if (primaryExp instanceof ParenthesisExp parenthesisExp) {
                 visitExp((parenthesisExp.getExp()));
-            } else if (primaryExp.getPrimaryExp() instanceof LVal lVal) {
+            } else if (primaryExp instanceof LVal lVal) {
                 visitLVal(lVal);
             }
         }
@@ -291,14 +290,8 @@ public class Visitor {
         if (funcDef.getFuncType().getFuncTypeToken().getTokenType() != Token.TokenType.VOIDTK) {
             if (blockItems.isEmpty()) {
                 CompileError.raiseError(funcDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-            }
-            else if (!(blockItems.get(blockItems.size() - 1).getBlockItem() instanceof Stmt)) {
+            } else if (!(blockItems.get(blockItems.size() - 1) instanceof ReturnStmt)){
                 CompileError.raiseError(funcDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-            } else {
-                Stmt stmt = (Stmt) (blockItems.get(blockItems.size() - 1).getBlockItem());
-                if (!(stmt.getStmt() instanceof ReturnStmt)) {
-                    CompileError.raiseError(funcDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-                }
             }
         }
 
@@ -378,15 +371,14 @@ public class Visitor {
     }
 
     private void visitBlockItem(BlockItem blockItem) {
-        if (blockItem.getBlockItem() instanceof Decl) {
-            visitDecl((Decl) blockItem.getBlockItem());
+        if (blockItem instanceof Decl decl) {
+            visitDecl(decl);
         } else {
-            visitStmt((Stmt) blockItem.getBlockItem());
+            visitStmt((Stmt) blockItem);
         }
     }
 
-    private void visitStmt(Stmt stmt) {
-        Stmt s = stmt.getStmt();
+    private void visitStmt(Stmt s) {
         if (s instanceof IfStmt ifStmt) {
             visitCond(ifStmt.getCond());
             visitStmt(ifStmt.getStmt());
@@ -517,13 +509,8 @@ public class Visitor {
         if (blockItems.isEmpty()) {
             CompileError.raiseError(mainFuncDef.getBlock().rBraceLine, CompileError.ErrorType.g);
         }
-        else if (!(blockItems.get(blockItems.size() - 1).getBlockItem() instanceof Stmt)) {
+        else if (!(blockItems.get(blockItems.size() - 1) instanceof ReturnStmt)) {
             CompileError.raiseError(mainFuncDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-        } else {
-            Stmt stmt = (Stmt) (blockItems.get(blockItems.size() - 1).getBlockItem());
-            if (!(stmt.getStmt() instanceof ReturnStmt)) {
-                CompileError.raiseError(mainFuncDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-            }
         }
 
         curSymbolTab = new SymbolTable(curSymbolTab);

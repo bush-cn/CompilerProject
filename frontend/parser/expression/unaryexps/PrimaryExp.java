@@ -13,31 +13,20 @@ import java.io.IOException;
 import java.util.Set;
 
 public class PrimaryExp extends UnaryExp implements SyntaxNode<UnaryExp> {
-    PrimaryExp primaryExp; // praimaryexps包里的子类之一
-
-    public PrimaryExp getPrimaryExp() {
-        return primaryExp;
-    }
-
     @Override
     public PrimaryExp parse() throws IOException {
         Token.TokenType tokenType = Parser.currentSymbol().getTokenType();
 
         if (tokenType == Token.TokenType.LPARENT) {
-            primaryExp = new ParenthesisExp().parse();
+            return new ParenthesisExp().parse();
         } else if (tokenType == Token.TokenType.IDENFR) {
-            primaryExp = new LVal().parse();
+            return new LVal().parse();
         } else if (tokenType == Token.TokenType.INTCON) {
-            primaryExp = new Number().parse();
+            return new Number().parse();
         } else if (tokenType == Token.TokenType.CHRCON) {
-            primaryExp = new Character().parse();
+            return new Character().parse();
         } // 不考虑其他情况
 
         return this;
-    }
-
-    @Override
-    public String outputString() {
-        return primaryExp.outputString() + "\n<PrimaryExp>";
     }
 }

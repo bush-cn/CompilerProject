@@ -42,13 +42,13 @@ public class ExpStmt extends Stmt implements SyntaxNode<BlockItem> {
     @Override
     public String outputString() {
         if (exp != null && hasSemicolon) {
-            return exp.outputString() + "\nSEMICN ;";
+            return exp.outputString() + "\nSEMICN ;" + "\n<Stmt>";
         } else if (exp != null && !hasSemicolon) {
-            return exp.outputString();
+            return exp.outputString() + "\n<Stmt>";
         } else if (exp == null && hasSemicolon) {
-            return "SEMICN ;";
+            return "SEMICN ;" + "\n<Stmt>";
         } else {
-            return "";
+            return "\n<Stmt>";
         }
     }
 }

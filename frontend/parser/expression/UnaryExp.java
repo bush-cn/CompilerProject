@@ -14,14 +14,14 @@ public class UnaryExp implements SyntaxNode<UnaryExp> {
     // 相邻两个 UnaryOp 不能相同
     // UnaryOp 为 '!' 只能出现在条件表达式中
     List<UnaryOp> unaryOps = new ArrayList<>();
-    UnaryExp unaryExp; // unaryexps包里的子类之一
+    UnaryExp unaryExpWithoutOp; // unaryexps包里的子类之一
 
     public List<UnaryOp> getUnaryOps() {
         return unaryOps;
     }
 
-    public UnaryExp getUnaryExp() {
-        return unaryExp;
+    public UnaryExp getUnaryExpWithoutOp() {
+        return unaryExpWithoutOp;
     }
 
     @Override
@@ -39,14 +39,14 @@ public class UnaryExp implements SyntaxNode<UnaryExp> {
         if (tokenType == Token.TokenType.LPARENT
         || tokenType == Token.TokenType.INTCON
         || tokenType == Token.TokenType.CHRCON) {
-            unaryExp = new PrimaryExp().parse();
+            unaryExpWithoutOp = new PrimaryExp().parse();
         }
         // 此外tokenType只会是IDENFR，但要通过超前看两个token区分为两种情况
         else if (tokenType == Token.TokenType.IDENFR) {
             if (Parser.preReadNext().getTokenType() == Token.TokenType.LPARENT) {
-                unaryExp = new FunctionCall().parse();
+                unaryExpWithoutOp = new FunctionCall().parse();
             } else {
-                unaryExp = new PrimaryExp().parse();
+                unaryExpWithoutOp = new PrimaryExp().parse();
             }
         } // 不考虑其他错误
         else {
@@ -60,6 +60,6 @@ public class UnaryExp implements SyntaxNode<UnaryExp> {
 
     @Override
     public String outputString() {
-        return unaryExp.outputString() + "\n<UnaryExp>";
+        return unaryExpWithoutOp.outputString() + "\n<UnaryExp>";
     }
 }

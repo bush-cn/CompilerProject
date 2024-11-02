@@ -20,6 +20,6 @@ public class Number extends PrimaryExp implements SyntaxNode<UnaryExp> {
 
     @Override
     public String outputString() {
-        return intConst.outputString() + "\n<Number>";
+        return intConst.outputString() + "\n<Number>" + "\n<PrimaryExp>";
     }
 }

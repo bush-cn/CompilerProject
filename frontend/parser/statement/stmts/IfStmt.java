@@ -22,7 +22,6 @@ public class IfStmt extends Stmt implements SyntaxNode<BlockItem> {
         return cond;
     }
 
-    @Override
     public Stmt getStmt() {
         return stmt;
     }
@@ -83,6 +82,6 @@ public class IfStmt extends Stmt implements SyntaxNode<BlockItem> {
             sb.append(elseStmt.outputString());
         }
 
-        return sb.toString();
+        return sb.toString() + "\n<Stmt>";
     }
 }

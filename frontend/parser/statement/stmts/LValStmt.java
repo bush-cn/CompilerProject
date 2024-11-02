@@ -135,6 +135,6 @@ public class LValStmt extends Stmt implements SyntaxNode<BlockItem> {
             }
         }
 
-        return sb.toString();
+        return sb.toString() + "\n<Stmt>";
     }
 }

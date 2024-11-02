@@ -27,7 +27,6 @@ public class FStmt extends Stmt implements SyntaxNode<BlockItem> {
         return cond;
     }
 
-    @Override
     public Stmt getStmt() {
         return stmt;
     }
@@ -97,6 +96,6 @@ public class FStmt extends Stmt implements SyntaxNode<BlockItem> {
         sb.append('\n');
         sb.append(stmt.outputString());
 
-        return sb.toString();
+        return sb.toString() + "\n<Stmt>";
     }
 }

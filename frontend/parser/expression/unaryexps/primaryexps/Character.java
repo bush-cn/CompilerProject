@@ -20,6 +20,6 @@ public class Character extends PrimaryExp implements SyntaxNode<UnaryExp> {
 
     @Override
     public String outputString() {
-        return charConst.outputString() + "\n<Character>";
+        return charConst.outputString() + "\n<Character>" + "\n<PrimaryExp>";
     }
 }

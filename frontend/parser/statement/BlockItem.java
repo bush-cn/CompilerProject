@@ -8,11 +8,6 @@ import frontend.parser.declaration.Decl;
 import java.io.IOException;
 
 public class BlockItem implements SyntaxNode<BlockItem> {
-    BlockItem blockItem; // Decl或Stmt，且Decl和Stmt均为BlockItem子类
-
-    public BlockItem getBlockItem() {
-        return blockItem;
-    }
 
     @Override
     public BlockItem parse() throws IOException {
@@ -20,16 +15,16 @@ public class BlockItem implements SyntaxNode<BlockItem> {
         || Parser.currentSymbol().getTokenType() == Token.TokenType.CHARTK
         || Parser.currentSymbol().getTokenType() == Token.TokenType.CONSTTK) {
             // Decl
-            blockItem = new Decl().parse();
+            return new Decl().parse();
         } else {
-            blockItem = new Stmt().parse();
+            return new Stmt().parse();
         }
-        return this;
     }
 
     @Override
     public String outputString() {
         // 不输出<BlockItem>
-        return blockItem.outputString();
+        // 永远不会调用此输出因为在子类中已重写
+        return "Should Never Output This Item.";
     }
 }

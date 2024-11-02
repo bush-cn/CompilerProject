@@ -10,28 +10,22 @@ import frontend.parser.statement.stmts.*;
 import java.io.IOException;
 
 public class Stmt extends BlockItem implements SyntaxNode<BlockItem> {
-    Stmt stmt; // stmts包里的子类其中一个
-
-    public Stmt getStmt() {
-        return stmt;
-    }
-
     @Override
     public Stmt parse() throws IOException {
         Token.TokenType tokenType = Parser.currentSymbol().getTokenType();
 
         if (tokenType == Token.TokenType.IFTK) {
-            stmt = new IfStmt().parse();
+            return new IfStmt().parse();
         } else if (tokenType == Token.TokenType.FORTK) {
-            stmt = new FStmt().parse();
+            return new FStmt().parse();
         } else if (tokenType == Token.TokenType.RETURNTK) {
-            stmt = new ReturnStmt().parse();
+            return new ReturnStmt().parse();
         } else if (tokenType == Token.TokenType.PRINTFTK) {
-            stmt = new PrintfStmt().parse();
+            return new PrintfStmt().parse();
         } else if (tokenType == Token.TokenType.BREAKTK || tokenType == Token.TokenType.CONTINUETK) {
-            stmt = new BreakContinueStmt().parse();
+            return new BreakContinueStmt().parse();
         } else if (tokenType == Token.TokenType.LBRACE) {
-            stmt = new BlockStmt().parse();
+            return new BlockStmt().parse();
         } else if (tokenType == Token.TokenType.IDENFR
         && Parser.preReadNext().getTokenType() != Token.TokenType.LPARENT) {
             // 接下来区分LValStmt和ExpStmt
@@ -46,23 +40,16 @@ public class Stmt extends BlockItem implements SyntaxNode<BlockItem> {
                 // 但LValStmt在LVal后会紧跟ASSIGN
                 Parser.reset(mark); // 回溯
                 CompileError.reset(size);
-                stmt = new LValStmt().parse();
+                return new LValStmt().parse();
             } else {
                 Parser.reset(mark);
                 CompileError.reset(size);
-                stmt = new ExpStmt().parse();
+                return new ExpStmt().parse();
             }
         } else {
             // 其余情况均为ExpStmt
             // 包括不以IDENFR开头和以IDENFR开头但紧跟(
-            stmt = new ExpStmt().parse();
+            return new ExpStmt().parse();
         }
-
-        return this;
-    }
-
-    @Override
-    public String outputString() {
-        return stmt.outputString() + "\n<Stmt>";
     }
 }

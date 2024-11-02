@@ -54,6 +54,6 @@ public class BreakContinueStmt extends Stmt implements SyntaxNode<BlockItem> {
             sb.append("\nSEMICN ;");
         }
 
-        return sb.toString();
+        return sb.toString() + "\n<Stmt>";
     }
 }

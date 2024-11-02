@@ -22,6 +22,6 @@ public class BlockStmt extends Stmt implements SyntaxNode<BlockItem> {
 
     @Override
     public String outputString() {
-        return block.outputString();
+        return block.outputString() + "\n<Stmt>";
     }
 }

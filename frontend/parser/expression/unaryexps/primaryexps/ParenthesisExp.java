@@ -53,6 +53,6 @@ public class ParenthesisExp extends PrimaryExp implements SyntaxNode<UnaryExp> {
 //        sb.append("\n<PrimaryExp>");
         // 在PrimaryExp里输出
 
-        return sb.toString();
+        return sb.toString() + "\n<PrimaryExp>";
     }
 }

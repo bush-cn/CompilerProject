@@ -61,6 +61,6 @@ public class LVal extends PrimaryExp implements SyntaxNode<UnaryExp> {
 
         sb.append("\n<LVal>");
 
-        return sb.toString();
+        return sb.toString() + "\n<PrimaryExp>";
     }
 }
