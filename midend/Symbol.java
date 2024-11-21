@@ -1,5 +1,7 @@
 package midend;
 
+import midend.llvm.Value;
+
 public abstract class Symbol {
     public SymbolTable tableIn;
 
@@ -10,6 +12,8 @@ public abstract class Symbol {
         this.name = name;
         this.type = type;
     }
+
+    public Value address;  // 用于存放alloca的变量的地址（虚拟寄存器）
 
     public enum SymbolType {
         ConstChar, // char型常量

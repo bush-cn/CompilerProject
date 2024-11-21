@@ -81,7 +81,7 @@ PL/0编译程序采用一遍扫描，以语法分析为核心，由它调用词�
 
 主要参考的是教材上的PL/0，以及第三章的词法分析示例。
 
-![image-20241014104848084](.assets/image-20241014104848084.png)
+![image-20241014104848084](assets/image-20241014104848084.png)
 
 代码大致流程图如上，编码时，主要依靠这张图，其他细节在编码时实现。
 
@@ -92,7 +92,7 @@ PL/0编译程序采用一遍扫描，以语法分析为核心，由它调用词�
 ### 3.2.1 设计模式的选择、类的设计
 
 - 词法分析器`Lexer.java`采用单例模式（饿汉式）的设计模式，作为一个静态类存放到主类`Compiler.java`中，其方法也多是静态方法，最主要的是`getToken`方法；
-  ![image-20241014104957471](.assets/image-20241014104957471.png)
+  ![image-20241014104957471](assets/image-20241014104957471.png)
 - 单词token作为一个类`Token`，类型作为其内部枚举类`TokenType`；
 - 编译错误的处理：`CompilerError`是一个`Exception`的子类，在`Lexer`等各个组件的方法可以被抛出，在主类`Compiler`中被`try-catch`处理。
 
@@ -221,7 +221,7 @@ PL/0编译程序采用一遍扫描，以语法分析为核心，由它调用词�
 
 - 从`UnaryExp->MulExp->AddExp->RelExp->EqExp->LAndExp->LorExp`各层次间关系是一模一样的，因此编写完`UnaryExp->MulExp`后，可通过代码查找替换迁移得到后面的层间关系；手稿如下：
 
-  ![07fae8c98c7d24c7990122f1fc798d0](.assets/07fae8c98c7d24c7990122f1fc798d0.jpg)
+  ![07fae8c98c7d24c7990122f1fc798d0](assets/07fae8c98c7d24c7990122f1fc798d0.jpg)
 
 ### 4.2.6 关于错误处理的修改
 
@@ -293,7 +293,117 @@ PL/0编译程序采用一遍扫描，以语法分析为核心，由它调用词�
 
 相比于语法分析，这次的主要代码均在一个文件下（`Visitor.java`），耦合度高、模块化差、难以阅读和调试。但由于这次只是部分的语义分析，不涉及中间代码生成，因此期待在后面的迭代中优化结构、解耦合。
 
-# 代码生成设计
+# 6 代码生成设计
+
+## 6.1 编码前的设计
+
+### 6.1.1 基本设计
+
+按照教程的构建单元设置相关类：
+
+<img src="https://judge.buaa.edu.cn/cguserImages?_img=30639449344bc202b2e4ac7ba5b5ab1a.png" alt="图片#50% #center" style="zoom: 50%;" />
+
+类里均存放初始化的值，仅仅用于转成LLVM IR文本。实际要输出常量的值应差符号表。
+
+指令：
+
+| LLVM IR         | 使用方法                                                     | 简介                                                   |
+| --------------- | ------------------------------------------------------------ | ------------------------------------------------------ |
+| `add`           | `<result> = add <ty> <op1>, <op2>`                           | /                                                      |
+| `sub`           | `<result> = sub <ty> <op1>, <op2>`                           | /                                                      |
+| `mul`           | `<result> = mul <ty> <op1>, <op2>`                           | /                                                      |
+| `sdiv`          | `<result> = sdiv <ty> <op1>, <op2>`                          | 有符号除法                                             |
+| `srem`          | `<result> = srem <baseType> <op1>, <op2>`                        | 有符号取余                                             |
+| `icmp`          | `<result> = icmp <cond> <ty> <op1>, <op2>`                   | 比较指令                                               |
+| `and`           | `<result> = and <ty> <op1>, <op2>`                           | 按位与                                                 |
+| `or`            | `<result> = or <ty> <op1>, <op2>`                            | 按位或                                                 |
+| `call`          | `<result> = call [ret attrs] <ty> <name>(<...args>)`         | 函数调用                                               |
+| `alloca`        | `<result> = alloca <baseType>`                                   | 分配内存                                               |
+| `load`          | `<result> = load <ty>, ptr <pointer>`                        | 读取内存                                               |
+| `store`         | `store <ty> <initValue>, ptr <pointer>`                          | 写内存                                                 |
+| `getelementptr` | `<result> = getelementptr <ty>, ptr <ptrval>{, <ty> <idx>}*` | 计算目标元素的位置（数组部分会单独详细说明）           |
+| `phi`           | `<result> = phi [fast-math-flags] <ty> [<val0>, <label0>], ...` | /                                                      |
+| `zext..to`      | `<result> = zext <ty> <initValue> to <ty2>`                      | 将 `ty` 的 `initValue` 的 baseType 扩充为 `ty2`（zero extend） |
+| `trunc..to`     | `<result> = trunc <ty> <initValue> to <ty2>`                     | 将 `ty` 的 `initValue` 的 baseType 缩减为 `ty2`（truncate）    |
+| `br`            | `br i1 <cond>, label <iftrue>, label <iffalse>` `br label <dest>` | 改变控制流                                             |
+| `ret`           | `ret <baseType> <initValue> `, `ret void`                            | 退出当前函数，并返回值                                 |
+
+- 在生成对应指令时，将slot加入函数域。例如在`visitAddExp`中，仅在在生成add指令时将result作为新slot加入函数域，其他slot均在调用的`visitMulExp`中已加入函数域。
+- 符号类中新增address字段，存放符号分配到的地址空间
+- 我们规定数组名只用来（1）函数传参（此时应由FuncRParam一路推导至Ident，不存在任何其他符号），（2）通过索引取数组里面的值。
+
+|          | 全局作用域                                               | 局部作用域                                            | 共性                                                         |
+| -------- | -------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------ |
+| **常量** |                                                          |                                                       | 单个常量和常量数组均需给定`ConstExp`（即可在编译时计算的）初始值 |
+| **变量** | 若有初始值，则必须是可计算的`ConstExp`；若无初始值，置零 | 可以是不可计算的`Exp`                                 | 可以不带初始值                                               |
+| 共性     | @声明，在顶层，属于`GlobalValue`；需要保存初始值         | 常量和变量jun`alloca`指令声明，仅保存对应的虚拟寄存器 |                                                              |
+
+- 一个if语句将当前基本块分为4个基本块（有else）或3个基本块（无else）
+
+- 一个for语句将当前基本块分为5块
+
+  | B1   | preForStmt（若无preForStmt，则无B1）                   |
+  | ---- | ------------------------------------------------------ |
+  | B2   | Cond，条件跳转指令B3、B5（若无Cond，则是无条件跳转B3） |
+  | B3   | Stmt，无条件跳转B4                                     |
+  | B4   | postStmt，无条件跳转B2 （**continue语句跳点**）        |
+  | B5   | （end）（**break语句跳点**）                           |
+  
+- 暂时不考虑SSA形式和phi指令，符号表存储地址，每次引用变量使用load，赋值变量使用store。
+
+- 函数传递的非指针参数不能修改，因此**在进入函数时**，需要为其alloca一个地址空间，并将传进的参数赋给它（相当于变量定义）。**不能在第一次使用时再分配并赋值**，因为如果在循环体内使用该变量，则会导致死循环：
+
+```c
+int fun2(int a)  // a=6
+{
+    int b = 1;
+    int num = 1;
+    for (;a >= 1;)		 // 第一次使用时
+    {
+        b = b * a;
+        a = a - 1;		
+        if (a == 1)
+        {
+            break;
+        }
+        else if (a != 1)
+        {
+            num = num + 1;
+        }
+    }
+    printf("a! = %d, num = %d\n", b, num);
+    return 1;
+}
+```
+
+```assembly
+define dso_local i32 @fun2(i32 %0) {
+1:
+	%2 = alloca i32
+	store i32 1, i32* %2
+	%3 = alloca i32
+	store i32 1, i32* %3
+	br label %4
+4:
+	%5 = icmp sge i32 %0, 1			; for循环的cond块。若不分配，这里会始终会用a的旧值；而如果在此分配并赋值，则会一直赋相同的值给a
+	%6 = zext i1 %5 to i32
+	%7 = icmp ne i32 %6, 0
+	br i1 %7, label %8, label %26
+```
+
+
+
+### 6.1.2 短路求值
+
+以指导书中`if (a || b && c || d)`的例子说明：
+
+<img src="assets/image-20241118201458586.png" alt="image-20241118201458586" style="zoom:50%;" />
+
+
+
+## 6.2 编码后的设计
+
+
 
 # 代码优化设计
 

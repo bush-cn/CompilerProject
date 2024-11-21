@@ -1,5 +1,9 @@
-21 e
-22 e
-23 e
-24 e
-25 e
+test! x=1
+0 2
+test! x=2
+0 -2
+test! x=3
+test! in flag > 0
+4
+test! x=4
+0

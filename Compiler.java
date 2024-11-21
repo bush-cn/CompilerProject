@@ -6,6 +6,7 @@ import frontend.parser.Parser;
 import midend.Symbol;
 import midend.SymbolTable;
 import midend.Visitor;
+import midend.llvm.Module;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -20,15 +21,15 @@ public class Compiler {
         try (BufferedReader br =
                      new BufferedReader(new FileReader("testfile.txt"));
                 BufferedWriter bw =
-                     new BufferedWriter(new FileWriter("symbol.txt"));
+                     new BufferedWriter(new FileWriter("llvm_ir.txt"));
                 BufferedWriter bwErr =
                      new BufferedWriter(new FileWriter("error.txt"))){
             List<Token> tokenList = lexer.lex(br);
             CompUnit compUnit = parser.parse(tokenList);
-            visitor.visitCompUnit(compUnit);
+            Module module = visitor.visitCompUnit(compUnit);
 
             // 输出结果
-            outputSymbol(SymbolTable.ROOT, bw);
+            bw.write(module.toText());
             bwErr.write(CompileError.outputString());
 
         } catch (IOException e) {
