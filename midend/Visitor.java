@@ -62,6 +62,8 @@ public class Visitor {
     }
 
     public boolean inBranch = false;  // 当有为true时，需记录重新赋值的变量
+    // 当上一条指令为br、ret时，下一次实例化Slot（或添加到slots里）或添加指令时需要新建一个基本块
+    public boolean shouldCreateNewBlock = false;
 
     public Module module = new Module(); // llvm模块
 

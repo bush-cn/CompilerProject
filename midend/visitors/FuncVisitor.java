@@ -99,20 +99,22 @@ public class FuncVisitor {
         visitor.inFuncType = funcType; // 进入函数block
 
         visitor.checkoutBlock(new BasicBlock(visitor.curFunction));
-        // 为非指针型参数分配地址并赋值
+        // 为非指针型参数分配地址并赋值，指针型参数地址则直接等于Slot
         for (int i = 0; i < visitor.curFunction.params.size(); i++) {
             Function.Param param = visitor.curFunction.params.get(i);
+            String name = funcDef.getFuncFParams().getFuncFParams().get(i).getIdent().getIdent().getValue();
+            Symbol s = visitor.curSymbolTab.lookupSymbol(name);
             if (param.type.equals(Type.i32) || param.type.equals(Type.i8)) {
                 Value addr = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
                         new AllocaInst(addr, param.type)
                 );
-                String name = funcDef.getFuncFParams().getFuncFParams().get(i).getIdent().getIdent().getValue();
-                Symbol s = visitor.curSymbolTab.lookupSymbol(name);
                 s.address = addr;
                 visitor.curBasicBlock().addInst(
                         new StoreInst(param.type, param.value, new PointerType(param.type), addr)
                 );
+            } else {
+                s.address = param.value;
             }
         }
         // 解析函数体

@@ -106,7 +106,7 @@ public class StmtVisitor {
             visitor.checkoutBlock(condBlock);
 
             BasicBlock loopBlock = new BasicBlock(); // Loop
-            BasicBlock postStmtBlock = new BasicBlock();
+            BasicBlock postStmtBlock = new BasicBlock();    // continue跳点
             BasicBlock endBlock = new BasicBlock(); // end
             boolean mark = visitor.inBranch;
             visitor.inBranch = true;
@@ -163,8 +163,12 @@ public class StmtVisitor {
                                 new RetInst(Type.i32, value)
                         );
                     } else {
+                        Value truc = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
-                                new RetInst(Type.i8, value)
+                                new TruncInst(truc, Type.i32, value, Type.i8)
+                        );
+                        visitor.curBasicBlock().addInst(
+                                new RetInst(Type.i8, truc)
                         );
                     }
                 }
@@ -317,6 +321,14 @@ public class StmtVisitor {
             default -> Type.i8;
         };
         Value value = ExpVisitor.visitExp(forStmt.getExp());
+        // 若为i8则truc
+        if (type.equals(Type.i8)) {
+            Value truc = new Slot(visitor.curFunction);
+            visitor.curBasicBlock().addInst(
+                    new TruncInst(truc, Type.i32, value, Type.i8)
+            );
+            value = truc;
+        }
         visitor.curBasicBlock().addInst(
                 new StoreInst(type, value, new PointerType(type), address)
         );

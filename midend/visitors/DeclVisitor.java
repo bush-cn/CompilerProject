@@ -82,7 +82,7 @@ public class DeclVisitor {
                         new AllocaInst(newValue, type)
                 );
                 visitor.curBasicBlock().addInst(
-                        new StoreInst(Type.i32, new Immediate(initValue), new PointerType(type), newValue)
+                        new StoreInst(type, new Immediate(initValue), new PointerType(type), newValue)
                 );
             }
             newSymbol.address = newValue; // 符号表存地址
@@ -97,7 +97,7 @@ public class DeclVisitor {
                 String str = constDef.getConstInitVal().getStringConst().getStringConst().getValue();
                 int i = 0;
                 for (; i < length; i++) {
-                    if (i + 1 < str.length()) {
+                    if (i + 1 < str.length() - 1) {
                         initValues[i] = str.charAt(i + 1);
                     } else {
                         initValues[i] = 0;
@@ -265,9 +265,9 @@ public class DeclVisitor {
                 visitor.curSymbolTab.addSymbol(newSymbol);
             } else {
                 // 局部作用域
-                Slot arrayValue = new Slot(visitor.curFunction);
+                Value arrayValue = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new AllocaInst(arrayValue, new ArrayType(length, type))
+                        new AllocaInst(arrayValue, type)
                 );
                 newSymbol.address = arrayValue;
                 visitor.curSymbolTab.addSymbol(newSymbol);
@@ -280,12 +280,13 @@ public class DeclVisitor {
                         for (int i = 1; i < str.length() - 1; i++) {
                             Slot s = new Slot(visitor.curFunction);
                             visitor.curBasicBlock().addInst(
-                                    new GEPInst(s, type, arrayValue, new Immediate(i))
+                                    new GEPInst(s, type, arrayValue, new Immediate(i - 1))
                             );
                             visitor.curBasicBlock().addInst(
                                     new StoreInst(type.eleType, new Immediate(str.charAt(i)), new PointerType(type.eleType), s)
                             );
                         }
+                        // 若字符串长度不够，后面的不补0？
                     } else {
                         for (int i = 0; i < varDef.getInitVal().getExps().size(); i++) {
                             Exp exp = varDef.getInitVal().getExps().get(i);
