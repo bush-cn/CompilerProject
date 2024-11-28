@@ -60,6 +60,13 @@ public class UnaryExp implements SyntaxNode<UnaryExp> {
 
     @Override
     public String outputString() {
-        return unaryExpWithoutOp.outputString() + "\n<UnaryExp>";
+        StringBuilder sb = new StringBuilder();
+        for (UnaryOp unaryOp : unaryOps) {
+            sb.append(unaryOp.outputString())
+                    .append('\n');
+        }
+        sb.append(unaryExpWithoutOp.outputString())
+                .append("\n<UnaryExp>");
+        return sb.toString();
     }
 }

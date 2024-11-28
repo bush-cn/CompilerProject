@@ -28,6 +28,13 @@ public class RelExp implements SyntaxNode<RelExp> {
     public static class OpAddExp {
         public Token op;
         public AddExp addExp;
+
+        public OpAddExp(Token op, AddExp addExp) {
+            this.op = op;
+            this.addExp = addExp;
+        }
+
+        public OpAddExp() {}
     }
 
     List<OpAddExp> opAddExps = new ArrayList<>();

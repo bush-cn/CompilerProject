@@ -187,14 +187,34 @@ public class ExpVisitor {
                     // 数组传参时，一路推到标识符，传递指针即可
                     String name = ((LVal)exp.getAddExp().getMulExp().getUnaryExp().getUnaryExpWithoutOp()).getIdent().getIdent().getValue();
                     Symbol arrayParam = visitor.curSymbolTab.lookupSymbol(name);
-                    Value p = new Slot(visitor.curFunction);
+                    Value p;
                     if (arrayParam instanceof IntArraySymbol intArraySymbol) {
+                        if (intArraySymbol.length == 0) {
+                            p = intArraySymbol.address;
+                        } else {
+                            p = new Slot(visitor.curFunction);
+                            visitor.curBasicBlock().addInst(
+                                    new GEPInst(p, new ArrayType(intArraySymbol.length, Type.i32), arrayParam.address, new Immediate(0))
+                            );
+                        }
+                    } else if (arrayParam instanceof CharArraySymbol charArraySymbol){
+                        if (charArraySymbol.length == 0) {
+                            p = charArraySymbol.address;
+                        } else {
+                            p = new Slot(visitor.curFunction);
+                            visitor.curBasicBlock().addInst(
+                                    new GEPInst(p, new ArrayType(charArraySymbol.length, Type.i8), arrayParam.address, new Immediate(0))
+                            );
+                        }
+                    } else if (arrayParam instanceof ConstIntArraySymbol constIntArraySymbol) {
+                        p = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
-                                new GEPInst(p, new ArrayType(intArraySymbol.length, Type.i32), arrayParam.address, new Immediate(0))
+                                new GEPInst(p, new ArrayType(constIntArraySymbol.values.length, Type.i32), arrayParam.address, new Immediate(0))
                         );
-                    } else { // 不考虑常量数组直接传递地址【？】
+                    } else {
+                        p = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
-                                new GEPInst(p, new ArrayType(((CharArraySymbol)arrayParam).length, Type.i8), arrayParam.address, new Immediate(0))
+                                new GEPInst(p, new ArrayType(((ConstCharArraySymbol)arrayParam).values.length, Type.i8), arrayParam.address, new Immediate(0))
                         );
                     }
                     params.add(new Function.Param(paramType, p));
@@ -253,10 +273,17 @@ public class ExpVisitor {
                 result = new Immediate(Integer.parseInt(number.getIntConst().getIntConst().getValue()));
             } else {
                 Character character = (Character) primaryExp;
-                result = new Immediate(character.getCharConst().getCharConst().getValue().charAt(1));
+                char c = character.getCharConst().getCharConst().getValue().charAt(1);
+                if (c != '\\') {
+                    return new Immediate(c);
+                } else {
+                    return new Immediate(getEscapedCharacter(character.getCharConst().getCharConst().getValue().charAt(2)));
+                }
             }
         }
-        for (UnaryOp unaryOp: unaryExp.getUnaryOps()) {
+        List<UnaryOp> unaryOps = unaryExp.getUnaryOps();
+        for (int i = unaryOps.size() - 1; i >= 0; i--) {
+            UnaryOp unaryOp = unaryOps.get(i);
             switch (unaryOp.getUnaryToken().getTokenType()) {
                 case MINU -> {
                     if (result instanceof Immediate immediate) {
@@ -272,7 +299,7 @@ public class ExpVisitor {
                 case NOT -> {
                     // 虽然只有条件关系式中出现NOT，但是仍有要返回i32类型
                     if (result instanceof Immediate immediate) {
-                        result = new Immediate(~immediate.immediate);
+                        result = new Immediate(immediate.immediate == 0? 1: 0);
                     } else {
                         // !a逻辑运算结果等价于与(a==0)
                         Value s = new Slot(visitor.curFunction);
@@ -322,8 +349,7 @@ public class ExpVisitor {
                             new GEPInst(result, new ArrayType(charArraySymbol.length, Type.i8), basePointer, expValue)
                     );
                 }
-            } else {
-                IntArraySymbol intArraySymbol = (IntArraySymbol) symbol;
+            } else if (symbol instanceof IntArraySymbol intArraySymbol){
                 if (intArraySymbol.length == 0) {
                     // 数组指针参数
                     visitor.curBasicBlock().addInst(
@@ -334,7 +360,7 @@ public class ExpVisitor {
                             new GEPInst(result, new ArrayType(intArraySymbol.length, Type.i32), basePointer, expValue)
                     );
                 }
-            }
+            }  // 不考虑对常量赋值
             return result;
         } else {
             return symbol.address;
@@ -523,6 +549,9 @@ public class ExpVisitor {
             );
         }
     }
+
+    // 返回i1类型
+    // 比较运算符没有优先级！虽然EqExp比RelExp高一级，但是运算优先级相等！！
     public static Value visitEqExp(EqExp eqExp) {
         Value left = visitRelExp(eqExp.getRelExp());
         if (eqExp.getOpRelExps().isEmpty()) {
@@ -560,6 +589,8 @@ public class ExpVisitor {
         }
         return left;
     }
+
+    // 返回i32类型（因为可能直接比较EqExp3==4这种）
     public static Value visitRelExp(RelExp relExp) {
         Value left = visitAddExp(relExp.getAddExp());
         for (RelExp.OpAddExp opAddExp: relExp.getOpAddExps()) {
@@ -596,18 +627,52 @@ public class ExpVisitor {
                         );
                     }
                 }
-                left = result;
+                Value zext = new Slot(visitor.curFunction);
+                visitor.curBasicBlock().addInst(
+                        new ZextInst(zext, Type.i1, result, Type.i32)
+                );
+                left = zext;
             }
         }
-        // 若产生比较，将RelExp返回值扩展成i32，便于EqExp中统一用i32计算
-        if (!relExp.getOpAddExps().isEmpty() && !(left instanceof Immediate)) {
-            Value zext = new Slot(visitor.curFunction);
-            visitor.curBasicBlock().addInst(
-                    new ZextInst(zext, Type.i1, left, Type.i32)
-            );
-            return zext;
-        } else {
-            return left;
+        return left;
+    }
+
+    public static char getEscapedCharacter(char c) {
+        // '\r'不需要转义
+        switch (c) {
+            case 'a' -> {
+                return (char)7; // '\a'响铃
+            }
+            case 'b' -> {
+                return '\b';  // 退格符
+            }
+            case 't' -> {
+                return '\t';  // 制表符
+            }
+            case 'n' -> {
+                return '\n';  // 换行符
+            }
+            case 'v' -> {
+                return (char)11;  // '\v'垂直制表符
+            }
+            case 'f' -> {
+                return '\f';  // 换页符
+            }
+            case '"' -> {
+                return '\"'; // 双引号
+            }
+            case '\'' -> {
+                return '\''; // 单引号
+            }
+            case '\\' -> {
+                return '\\'; // 反斜杠
+            }
+            case '0' -> {
+                return '\0'; // 空字符
+            }
+            default -> {
+                return c;
+            }
         }
     }
 }

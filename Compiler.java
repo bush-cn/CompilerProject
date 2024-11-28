@@ -31,7 +31,6 @@ public class Compiler {
             // 输出结果
             bw.write(module.toText());
             bwErr.write(CompileError.outputString());
-
         } catch (IOException e) {
             System.out.println("IOException: file operation failed");
         }
