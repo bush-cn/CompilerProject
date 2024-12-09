@@ -1,6 +1,7 @@
 package midend.llvm.instructions;
 
 import midend.llvm.Instruction;
+import midend.llvm.Slot;
 import midend.llvm.Value;
 import midend.llvm.types.Type;
 
@@ -13,9 +14,14 @@ public class BinaryInst extends Instruction {
 
     @Override
     public String toText() {
+        if (comment == null) {
+            return result.toText() + " = " + binaryOp
+                    + " " + type + " "
+                    + op1.toText() + ", " + op2.toText();
+        }
         return result.toText() + " = " + binaryOp
                 + " " + type + " "
-                + op1.toText() + ", " + op2.toText();
+                + op1.toText() + ", " + op2.toText() + "\t\t;" + comment;
     }
 
     public BinaryInst(Value result, BinaryOp binaryOp, Type type, Value op1, Value op2) {
@@ -24,6 +30,14 @@ public class BinaryInst extends Instruction {
         this.type = type;
         this.op1 = op1;
         this.op2 = op2;
+
+        def.add((Slot)result);
+        if (op1 instanceof Slot slot1) {
+            use.add(slot1);
+        }
+        if (op2 instanceof Slot slot2) {
+            use.add(slot2);
+        }
     }
 
     public enum BinaryOp {
@@ -34,7 +48,7 @@ public class BinaryInst extends Instruction {
         srem("srem"),
         and("and"),
         or("or"),
-        xor("xor"),     // 用于! 取反
+        xor("xor"),     // 异或
         eq("icmp eq"),
         ne("icmp ne"),
         sgt("icmp sgt"),

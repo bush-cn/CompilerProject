@@ -12,6 +12,9 @@ public class BrInst extends Instruction {
 
     @Override
     public String toText() {
-        return "br label " + label.toText();
+        if (comment == null) {
+            return "br label " + label.toText();
+        }
+        return "br label " + label.toText() + "\t\t;" + comment;
     }
 }

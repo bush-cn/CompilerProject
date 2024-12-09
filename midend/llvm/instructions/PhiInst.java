@@ -1,6 +1,7 @@
 package midend.llvm.instructions;
 
 import midend.llvm.Instruction;
+import midend.llvm.Slot;
 import midend.llvm.Value;
 import midend.llvm.types.Type;
 
@@ -17,6 +18,8 @@ public class PhiInst extends Instruction {
         this.result = result;
         this.type = type;
         this.valueLabel = valueLabel;
+
+        // TODO: 将phi指令进行数据流分析
     }
 
     @Override

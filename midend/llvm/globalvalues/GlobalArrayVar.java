@@ -6,7 +6,6 @@ import midend.llvm.types.ArrayType;
 import midend.llvm.types.Type;
 
 public class GlobalArrayVar extends GlobalValue {
-    public String name;
     public ArrayType type;
     public int[] initValues;   // 若为null，表示没有初始值，则用zeroinitializer初始为0
     public boolean isConst;
@@ -32,15 +31,15 @@ public class GlobalArrayVar extends GlobalValue {
         sb.append("@")
                 .append(name)
                 .append(" = dso_local ")
-                .append(isConst ? "constant": "global")
+                .append(isConst ? "constant ": "global ")
                 .append(type);
         if (initValues == null || initValues.length == 0) {
             // 当有初始值但为空时，也使用zeroinitializer
-            sb.append("zeroinitializer");
+            sb.append(" zeroinitializer");
         } else {
             // 暂时不考虑直接使用字符串为char数组赋值
             // 若后续代码优化可以提升，则在此处考虑替换
-            sb.append("[");
+            sb.append(" [");
             int i = 0;
             for (; i < initValues.length; i++) {
                 if (i > 0) {

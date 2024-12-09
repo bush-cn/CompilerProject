@@ -7,7 +7,6 @@ import midend.llvm.types.Type;
 // Hello: %d, %c
 public class ConstString extends GlobalValue {
     private static int counter = 0;
-    public String name;
     public String constString;
     public String escapeString;
     public int length = 0;

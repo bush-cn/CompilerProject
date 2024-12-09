@@ -8,7 +8,6 @@ import midend.llvm.types.Type;
  *全局变量和常量
  */
 public class GlobalVariable extends GlobalValue {
-    public String name;
     public Type type;
     public int initValue;   // 若无则为0
     public boolean isConst;

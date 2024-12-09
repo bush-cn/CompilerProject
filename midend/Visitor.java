@@ -1,32 +1,14 @@
 package midend;
 
-import error.CompileError;
-import frontend.lexer.Token;
 import frontend.parser.CompUnit;
 import frontend.parser.declaration.*;
-import frontend.parser.expression.*;
-import frontend.parser.expression.unaryexps.FunctionCall;
-import frontend.parser.expression.unaryexps.PrimaryExp;
-import frontend.parser.expression.unaryexps.primaryexps.LVal;
-import frontend.parser.expression.unaryexps.primaryexps.ParenthesisExp;
 import frontend.parser.function.FuncDef;
-import frontend.parser.function.FuncFParam;
-import frontend.parser.function.FuncFParams;
-import frontend.parser.function.MainFuncDef;
-import frontend.parser.statement.*;
-import frontend.parser.statement.stmts.*;
 import midend.llvm.BasicBlock;
 import midend.llvm.Function;
 import midend.llvm.Module;
 import midend.llvm.Value;
-import midend.symbols.*;
 import midend.visitors.DeclVisitor;
-import midend.visitors.ExpVisitor;
 import midend.visitors.FuncVisitor;
-import midend.visitors.StmtVisitor;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Visitor {
     private Visitor() {}
@@ -43,7 +25,7 @@ public class Visitor {
     public SymbolTable curSymbolTab = SymbolTable.ROOT;
 
     public boolean inLoop = false;
-    public Value continueLabel, breakLabel;
+    public BasicBlock continueHop, breakHop;
 
     // 当前所在的函数类型IntFunc/CharFunc/VoidFunc/null
     // 用来判断return语句是否造成f错误

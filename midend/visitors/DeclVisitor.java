@@ -49,8 +49,6 @@ public class DeclVisitor {
             return ;
         }
 
-        // visitConstInitVal(constDef.getConstInitVal());
-
         if (constDef.getConstExp() == null) {
             // 单个常量
             assert !constDef.getConstInitVal().isArray();
@@ -79,10 +77,10 @@ public class DeclVisitor {
                 // 局部作用域
                 newValue = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new AllocaInst(newValue, type)
+                        new AllocaInst(newValue, type).setComment("decl const: " + token.getValue())
                 );
                 visitor.curBasicBlock().addInst(
-                        new StoreInst(type, new Immediate(initValue), new PointerType(type), newValue)
+                        new StoreInst(type, new Immediate(initValue), new PointerType(type), newValue).setComment("init const: " + token.getValue())
                 );
             }
             newSymbol.address = newValue; // 符号表存地址
@@ -139,16 +137,16 @@ public class DeclVisitor {
                 // 局部作用域
                 newValue = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new AllocaInst(newValue, type)
+                        new AllocaInst(newValue, type).setComment("decl const array: " + token.getValue())
                 );
                 // 依次生成赋值指令
                 for (int i = 0; i < length; i++) {
                     Slot s = new Slot(visitor.curFunction);
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(s, type, newValue, new Immediate(i))
+                            new GEPInst(s, type, newValue, new Immediate(i)).setComment("get &" + token.getValue() + "[" + i + "]")
                     );
                     visitor.curBasicBlock().addInst(
-                            new StoreInst(type.eleType, new Immediate(initValues[i]), new PointerType(type.eleType), s)
+                            new StoreInst(type.eleType, new Immediate(initValues[i]), new PointerType(type.eleType), s).setComment("init " + token.getValue() + "[" + i + "]")
                     );
                 }
             }
@@ -201,11 +199,11 @@ public class DeclVisitor {
                 // 局部作用域
                 Value newValue = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new AllocaInst(newValue, type)
+                        new AllocaInst(newValue, type).setComment("decl var: " + token.getValue())
                 );
                 if (varDef.getInitVal() != null) {
                     Value initValue = ExpVisitor.visitExp(varDef.getInitVal().getExps().get(0));
-                    if (type.equals(Type.i8)) {
+                    if (type.equals(Type.i8) && initValue instanceof Slot) {
                         Value truc = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
                                 new TruncInst(truc, Type.i32, initValue, Type.i8)
@@ -213,7 +211,7 @@ public class DeclVisitor {
                         initValue = truc;
                     }
                     visitor.curBasicBlock().addInst(
-                            new StoreInst(type, initValue, new PointerType(type), newValue)
+                            new StoreInst(type, initValue, new PointerType(type), newValue).setComment("init var: " + token.getValue())
                     );
                 }
                 newSymbol.address = newValue;
@@ -267,7 +265,7 @@ public class DeclVisitor {
                 // 局部作用域
                 Value arrayValue = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new AllocaInst(arrayValue, type)
+                        new AllocaInst(arrayValue, type).setComment("decl var array: " + token.getValue())
                 );
                 newSymbol.address = arrayValue;
                 visitor.curSymbolTab.addSymbol(newSymbol);
@@ -280,10 +278,10 @@ public class DeclVisitor {
                         for (int i = 1; i < str.length() - 1; i++) {
                             Slot s = new Slot(visitor.curFunction);
                             visitor.curBasicBlock().addInst(
-                                    new GEPInst(s, type, arrayValue, new Immediate(i - 1))
+                                    new GEPInst(s, type, arrayValue, new Immediate(i - 1)).setComment("get &" + token.getValue() + "[" + (i - 1) + "]")
                             );
                             visitor.curBasicBlock().addInst(
-                                    new StoreInst(type.eleType, new Immediate(str.charAt(i)), new PointerType(type.eleType), s)
+                                    new StoreInst(type.eleType, new Immediate(str.charAt(i)), new PointerType(type.eleType), s).setComment("init " + token.getValue() + "[" + (i - 1) + "]")
                             );
                         }
                         // 若字符串长度不够，后面的不补0？
@@ -300,10 +298,10 @@ public class DeclVisitor {
                             }
                             Value address = new Slot(visitor.curFunction);
                             visitor.curBasicBlock().addInst(
-                                    new GEPInst(address, type, arrayValue, new Immediate(i))
+                                    new GEPInst(address, type, arrayValue, new Immediate(i)).setComment("get &" + token.getValue() + "[" + i + "]")
                             );
                             visitor.curBasicBlock().addInst(
-                                    new StoreInst(type.eleType, initValue, new PointerType(type.eleType), address)
+                                    new StoreInst(type.eleType, initValue, new PointerType(type.eleType), address).setComment("init " + token.getValue() + "[" + i + "]")
                             );
                         }
                     }

@@ -1,0 +1,228 @@
+.data
+	constInt: .word 10
+	constCharA: .word 65
+	constCharB: .word 66
+	varInt: .word 0
+	varIntB: .word 5
+	varIntC: .word 15
+	varChar: .word 0
+	.str.0: .asciiz "Function with no parameters\n"
+	.str.1: .asciiz "Function with single parameter, x = "
+	.str.2: .asciiz "\n"
+	.str.3: .asciiz "Function with parameters: a = "
+	.str.4: .asciiz ", b = "
+	.str.5: .asciiz "\n"
+	.str.6: .asciiz "Function returning a character\n"
+	.str.7: .asciiz "22373141\n"
+	.str.8: .asciiz "Result of functionWithParams: "
+	.str.9: .asciiz "\n"
+	.str.10: .asciiz "Character returned: "
+	.str.11: .asciiz "\n"
+	.str.12: .asciiz "Result of functionSingleParam: "
+	.str.13: .asciiz "\n"
+	.str.14: .asciiz "Input integer: "
+	.str.15: .asciiz "\n"
+	.str.16: .asciiz "Input character: "
+	.str.17: .asciiz "\n"
+.text
+main:
+main_label_0:
+	li $v0, 4
+	la $a0, .str.7
+	syscall
+	addi $sp, $sp, -4
+	move $t0, $sp	# reg of %1
+	lw $t1, varIntB
+	addi $t1, $t1, 10
+	sw $t1, 0($t0)
+	lw $t1, 0($t0)
+	lw $t2, varIntC
+	mul $t1, $t1, $t2
+	sw $t1, varInt
+	li $t2, 65
+	sw $t2, varChar
+	lw $t2, 0($t0)
+	lw $t3, varInt
+	add $t2, $t2, $t3
+	sw $ra, -4($sp)
+	sw $t0, -8($sp)
+	addi $sp, $sp, -24
+	jal functionNoParam
+	lw $t0, 16($sp)
+	lw $ra, 20($sp)
+	addi $sp, $sp, 24
+	addi $sp, $sp, -4
+	move $t3, $sp	# reg of %10
+	lw $t4, 0($t0)
+	lw $t5, varChar
+	sw $ra, -4($sp)
+	sw $t3, -8($sp)
+	sw $t0, -12($sp)
+	move $a1, $t5
+	move $a0, $t4
+	addi $sp, $sp, -28
+	jal functionWithParams
+	move $t4, $v0
+	lw $t0, 16($sp)
+	lw $t3, 20($sp)
+	lw $ra, 24($sp)
+	addi $sp, $sp, 28
+	sw $t4, 0($t3)
+	li $v0, 4
+	la $a0, .str.8
+	syscall
+	lw $t3, 0($t3)
+	li $v0, 1
+	move $a0, $t3
+	syscall
+	li $v0, 4
+	la $a0, .str.9
+	syscall
+	addi $sp, $sp, -4
+	move $t3, $sp	# reg of %17
+	sw $ra, -4($sp)
+	sw $t3, -8($sp)
+	sw $t0, -12($sp)
+	addi $sp, $sp, -28
+	jal functionReturnChar
+	move $t4, $v0
+	lw $t0, 16($sp)
+	lw $t3, 20($sp)
+	lw $ra, 24($sp)
+	addi $sp, $sp, 28
+	sw $t4, 0($t3)
+	li $v0, 4
+	la $a0, .str.10
+	syscall
+	lw $t3, 0($t3)
+	li $v0, 11
+	move $a0, $t3
+	syscall
+	li $v0, 4
+	la $a0, .str.11
+	syscall
+	addi $sp, $sp, -4
+	move $t3, $sp	# reg of %23
+	lw $t0, 0($t0)
+	sw $ra, -4($sp)
+	sw $t3, -8($sp)
+	move $a0, $t0
+	addi $sp, $sp, -24
+	jal functionSingleParam
+	move $t0, $v0
+	lw $t3, 16($sp)
+	lw $ra, 20($sp)
+	addi $sp, $sp, 24
+	sw $t0, 0($t3)
+	li $v0, 4
+	la $a0, .str.12
+	syscall
+	lw $t0, 0($t3)
+	li $v0, 1
+	move $a0, $t0
+	syscall
+	li $v0, 4
+	la $a0, .str.13
+	syscall
+	addi $sp, $sp, -4
+	move $t0, $sp	# reg of %27
+	li $v0, 5
+	syscall
+	move $t3, $v0
+	sw $t3, 0($t0)
+	li $v0, 4
+	la $a0, .str.14
+	syscall
+	lw $t0, 0($t0)
+	li $v0, 1
+	move $a0, $t0
+	syscall
+	li $v0, 4
+	la $a0, .str.15
+	syscall
+	addi $sp, $sp, -4
+	move $t0, $sp	# reg of %30
+	li $v0, 12
+	syscall
+	move $t3, $v0
+	sw $t3, 0($t0)
+	li $v0, 4
+	la $a0, .str.16
+	syscall
+	lw $t0, 0($t0)
+	li $v0, 11
+	move $a0, $t0
+	syscall
+	li $v0, 4
+	la $a0, .str.17
+	syscall
+	li $v0, 10
+	syscall
+functionNoParam:
+functionNoParam_label_0:
+	li $v0, 4
+	la $a0, .str.0
+	syscall
+	addi $sp, $sp, 0
+	jr $ra
+functionSingleParam:
+functionSingleParam_label_1:
+	addi $sp, $sp, -4
+	move $t0, $sp	# reg of %2
+	sw $a0, 0($t0)
+	li $v0, 4
+	la $a0, .str.1
+	syscall
+	lw $t1, 0($t0)
+	li $v0, 1
+	move $a0, $t1
+	syscall
+	li $v0, 4
+	la $a0, .str.2
+	syscall
+	lw $t1, 0($t0)
+	lw $t0, 0($t0)
+	sub $t0, $t1, $t0
+	addi $t0, $t0, 8
+	move $v0, $t0
+	addi $sp, $sp, 4
+	jr $ra
+functionWithParams:
+functionWithParams_label_2:
+	addi $sp, $sp, -4
+	move $t0, $sp	# reg of %3
+	sw $a0, 0($t0)
+	addi $sp, $sp, -4
+	move $t1, $sp	# reg of %4
+	sw $a1, 0($t1)
+	li $v0, 4
+	la $a0, .str.3
+	syscall
+	lw $t2, 0($t0)
+	li $v0, 1
+	move $a0, $t2
+	syscall
+	li $v0, 4
+	la $a0, .str.4
+	syscall
+	lw $t2, 0($t1)
+	li $v0, 11
+	move $a0, $t2
+	syscall
+	li $v0, 4
+	la $a0, .str.5
+	syscall
+	lw $t0, 0($t0)
+	lw $t1, 0($t1)
+	add $t0, $t0, $t1
+	move $v0, $t0
+	addi $sp, $sp, 8
+	jr $ra
+functionReturnChar:
+functionReturnChar_label_0:
+	li $v0, 4
+	la $a0, .str.6
+	syscall
+	li $v0, 67
+	addi $sp, $sp, 0
+	jr $ra

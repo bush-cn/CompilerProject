@@ -1,16 +1,34 @@
 package midend.llvm;
 
+import frontend.parser.statement.Block;
 import midend.Visitor;
 import midend.llvm.instructions.BrCondInst;
 import midend.llvm.instructions.BrInst;
 import midend.llvm.instructions.RetInst;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class BasicBlock extends Value {
     public Slot label;  // 占一个slot
     public List<Instruction> instructions = new ArrayList<>();
+    public Set<BasicBlock> preds = new HashSet<>(); // 前驱
+    public Set<BasicBlock> succs = new HashSet<>(); // 后继
+    public void linkTo(BasicBlock block) {
+        succs.add(block);
+        block.preds.add(this);
+    }
+    /*
+    后端代码生成新增：数据流分析
+     */
+    public Set<Slot> liveIn = new HashSet<>();
+    public Set<Slot> liveOut = new HashSet<>();
+    public Set<Slot> reachIn = new HashSet<>();
+    public Set<Slot> reachOut = new HashSet<>();
+    public Set<Slot> use = new HashSet<>();
+    public Set<Slot> def = new HashSet<>();
 
     public void addInst(Instruction instruction) {
         if (!instructions.isEmpty()) {
@@ -40,7 +58,11 @@ public class BasicBlock extends Value {
     public String toText() {
         StringBuilder sb = new StringBuilder();
         sb.append(label.slotId)
-                .append(":");
+                .append(":\t\t\t\t\t\t\t\t ; preds =");
+        for (BasicBlock pred: preds) {
+            sb.append(" ")
+                    .append(pred.label.slotId);
+        }
         for (Instruction instruction: instructions) {
             sb.append("\n\t")
                     .append(instruction.toText());

@@ -3,16 +3,19 @@ package midend.llvm;
 import midend.llvm.types.Type;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Function extends GlobalValue {
-    String name;
     Type retType;
     public List<Param> params = new ArrayList<>(); // 形参
     public List<BasicBlock> basicBlocks = new ArrayList<>();
     public void addBasicBlock(BasicBlock block) {
         basicBlocks.add(block);
     }
+
+    public Set<Slot> interBlockLive = new HashSet<>();  // 函数内部的跨块活跃变量集合
 
     /**
      * 一个函数作用域中，需要分配虚拟寄存器的Value
@@ -22,15 +25,11 @@ public class Function extends GlobalValue {
      */
     public List<Slot> slots = new ArrayList<>();  // 包括指令里出现的slot和参数，以及函数体入口this（但不输出）
 
+    // TODO: 在优化中，对slots增删后，需要重新编号
+    private int slotTracker = 0;
     public void addSlot(Slot slot) {
         slots.add(slot);
-    }
-    private int slotTracker = 0;
-
-    private void setAllSlotId() {
-        for (Slot slot: slots) {
-            slot.slotId = slotTracker++;
-        }
+        slot.slotId = slotTracker++;    // 在加入的时候分配编号
     }
 
     /**
@@ -45,7 +44,6 @@ public class Function extends GlobalValue {
 
     @Override
     public String globalText() {
-        setAllSlotId();
         StringBuilder sb = new StringBuilder();
         sb.append("define dso_local ")
                 .append(retType)

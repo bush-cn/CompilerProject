@@ -107,11 +107,13 @@ public class FuncVisitor {
             if (param.type.equals(Type.i32) || param.type.equals(Type.i8)) {
                 Value addr = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new AllocaInst(addr, param.type)
+                        new AllocaInst(addr, param.type).
+                                setComment("alloc addr for fParam " + name)
                 );
                 s.address = addr;
                 visitor.curBasicBlock().addInst(
-                        new StoreInst(param.type, param.value, new PointerType(param.type), addr)
+                        new StoreInst(param.type, param.value, new PointerType(param.type), addr).
+                                setComment("store fParam slot")
                 );
             } else {
                 s.address = param.value;

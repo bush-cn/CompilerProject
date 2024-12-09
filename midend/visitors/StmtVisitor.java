@@ -9,17 +9,13 @@ import frontend.parser.statement.stmts.*;
 import midend.Symbol;
 import midend.SymbolTable;
 import midend.Visitor;
-import midend.llvm.BasicBlock;
-import midend.llvm.Function;
-import midend.llvm.Slot;
-import midend.llvm.Value;
+import midend.llvm.*;
 import midend.llvm.globalvalues.ConstString;
 import midend.llvm.instructions.*;
 import midend.llvm.types.PointerType;
 import midend.llvm.types.Type;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class StmtVisitor {
@@ -75,6 +71,7 @@ public class StmtVisitor {
             visitor.curBasicBlock().addInst(
                     new BrInst(end.label)
             ); // if.then跳转到end，不可使用trueJump添加指令，因为可能因为ret指令已经分裂
+            visitor.curBasicBlock().linkTo(end);
             visitor.inBranch = mark;
 
             if (ifStmt.getElseStmt() != null) {
@@ -86,6 +83,7 @@ public class StmtVisitor {
                 visitor.curBasicBlock().addInst(
                         new BrInst(end.label)
                 );// 同理，不可使用trueJump添加指令，因为可能因为ret指令已经分裂
+                visitor.curBasicBlock().linkTo(end);
                 visitor.inBranch = mark1;
             }
 
@@ -102,6 +100,7 @@ public class StmtVisitor {
             visitor.curBasicBlock().addInst(
                     new BrInst(condBlock.label)
             );
+            visitor.curBasicBlock().linkTo(condBlock);
             visitor.curFunction.addBasicBlock(condBlock);
             visitor.checkoutBlock(condBlock);
 
@@ -116,6 +115,7 @@ public class StmtVisitor {
                 visitor.curBasicBlock().addInst(
                         new BrInst(loopBlock.label)
                 );
+                visitor.curBasicBlock().linkTo(loopBlock);
             }
             visitor.inBranch = mark;
 
@@ -123,13 +123,14 @@ public class StmtVisitor {
             visitor.checkoutBlock(loopBlock);
             boolean curInLoop = visitor.inLoop;
             visitor.inLoop = true;
-            visitor.breakLabel = endBlock.label;
-            visitor.continueLabel = postStmtBlock.label;  // continue跳点是postStmt而不是cond
+            visitor.breakHop = endBlock;
+            visitor.continueHop = postStmtBlock;  // continue跳点是postStmt而不是cond
             visitStmt(fStmt.getStmt()); // 循环体stmt
             visitor.inLoop = curInLoop;
             visitor.curBasicBlock().addInst(
                     new BrInst(postStmtBlock.label)
             );
+            visitor.curBasicBlock().linkTo(postStmtBlock);
 
             visitor.curFunction.addBasicBlock(postStmtBlock);
             visitor.checkoutBlock(postStmtBlock);
@@ -139,6 +140,7 @@ public class StmtVisitor {
             visitor.curBasicBlock().addInst(
                     new BrInst(condBlock.label)
             );
+            visitor.curBasicBlock().linkTo(condBlock);
 
             visitor.curFunction.addBasicBlock(endBlock);
             visitor.checkoutBlock(endBlock);
@@ -163,12 +165,15 @@ public class StmtVisitor {
                                 new RetInst(Type.i32, value)
                         );
                     } else {
-                        Value truc = new Slot(visitor.curFunction);
+                        if (value instanceof Slot) {
+                            Value truc = new Slot(visitor.curFunction);
+                            visitor.curBasicBlock().addInst(
+                                    new TruncInst(truc, Type.i32, value, Type.i8)
+                            );
+                            value = truc;
+                        }
                         visitor.curBasicBlock().addInst(
-                                new TruncInst(truc, Type.i32, value, Type.i8)
-                        );
-                        visitor.curBasicBlock().addInst(
-                                new RetInst(Type.i8, truc)
+                                new RetInst(Type.i8, value)
                         );
                     }
                 }
@@ -229,12 +234,14 @@ public class StmtVisitor {
 
             if (breakContinueStmt.getBreakOrContinue().getTokenType() == Token.TokenType.BREAKTK) {
                 visitor.curBasicBlock().addInst(
-                        new BrInst(visitor.breakLabel)
+                        new BrInst(visitor.breakHop.label)
                 );
+                visitor.curBasicBlock().linkTo(visitor.breakHop);
             } else {
                 visitor.curBasicBlock().addInst(
-                        new BrInst(visitor.continueLabel)
+                        new BrInst(visitor.continueHop.label)
                 );
+                visitor.curBasicBlock().linkTo(visitor.continueHop);
             }
         }
         else if (s instanceof BlockStmt blockStmt) {
@@ -282,7 +289,7 @@ public class StmtVisitor {
                 case Int, IntArray, ConstInt, ConstIntArray -> Type.i32;
                 default -> Type.i8;
             };
-            if (type.equals(Type.i8)) {
+            if (type.equals(Type.i8) && right instanceof Slot) {
                 Value truc = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
                         new TruncInst(truc, Type.i32, right, Type.i8)

@@ -7,7 +7,7 @@ import midend.llvm.types.PointerType;
 import midend.llvm.types.Type;
 
 public class PutStrInst extends Instruction {
-    ConstString constString;
+    public ConstString constString;
 
     public PutStrInst(ConstString constString) {
         this.constString = constString;
@@ -16,8 +16,13 @@ public class PutStrInst extends Instruction {
     @Override
     public String toText() {
         Type arrayType = new ArrayType(constString.length, Type.i8);
+        if (comment == null) {
+            return "call void @putstr(i8* getelementptr inbounds ("
+                    + arrayType + ", " + new PointerType(arrayType)
+                    + " @" + constString.name + ", i64 0, i64 0))";
+        }
         return "call void @putstr(i8* getelementptr inbounds ("
                 + arrayType + ", " + new PointerType(arrayType)
-                + " @" + constString.name + ", i64 0, i64 0))";
+                + " @" + constString.name + ", i64 0, i64 0))" + "\t\t;" + comment;
     }
 }

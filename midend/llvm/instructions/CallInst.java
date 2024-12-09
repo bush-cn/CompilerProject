@@ -2,6 +2,7 @@ package midend.llvm.instructions;
 
 import midend.llvm.Function;
 import midend.llvm.Instruction;
+import midend.llvm.Slot;
 import midend.llvm.Value;
 import midend.llvm.types.Type;
 
@@ -19,6 +20,15 @@ public class CallInst extends Instruction {
         this.retType = retType;
         this.name = name;
         this.params = params;
+
+        if (result != null) {
+            def.add((Slot)result);
+        }
+        for (Function.Param param : params) {
+            if (param.value instanceof Slot slot) {
+                use.add(slot);
+            }
+        }
     }
 
     @Override
@@ -43,6 +53,9 @@ public class CallInst extends Instruction {
         }
         sb.append(")");
 
-        return sb.toString();
+        if (comment == null) {
+            return sb.toString();
+        }
+        return sb.toString() + "\t\t;" + comment;
     }
 }

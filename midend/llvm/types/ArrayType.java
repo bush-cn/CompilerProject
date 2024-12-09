@@ -1,5 +1,6 @@
 package midend.llvm.types;
 
+// 在只有一维数组的情况下，baseType和eleType等价
 public class ArrayType extends Type {
     public int length;
     public Type eleType;

@@ -194,7 +194,8 @@ public class ExpVisitor {
                         } else {
                             p = new Slot(visitor.curFunction);
                             visitor.curBasicBlock().addInst(
-                                    new GEPInst(p, new ArrayType(intArraySymbol.length, Type.i32), arrayParam.address, new Immediate(0))
+                                    new GEPInst(p, new ArrayType(intArraySymbol.length, Type.i32), arrayParam.address, new Immediate(0)).
+                                            setComment("load pointer param " + name)
                             );
                         }
                     } else if (arrayParam instanceof CharArraySymbol charArraySymbol){
@@ -203,24 +204,27 @@ public class ExpVisitor {
                         } else {
                             p = new Slot(visitor.curFunction);
                             visitor.curBasicBlock().addInst(
-                                    new GEPInst(p, new ArrayType(charArraySymbol.length, Type.i8), arrayParam.address, new Immediate(0))
+                                    new GEPInst(p, new ArrayType(charArraySymbol.length, Type.i8), arrayParam.address, new Immediate(0)).
+                                            setComment("load pointer param " + name)
                             );
                         }
                     } else if (arrayParam instanceof ConstIntArraySymbol constIntArraySymbol) {
                         p = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
-                                new GEPInst(p, new ArrayType(constIntArraySymbol.values.length, Type.i32), arrayParam.address, new Immediate(0))
+                                new GEPInst(p, new ArrayType(constIntArraySymbol.values.length, Type.i32), arrayParam.address, new Immediate(0)).
+                                        setComment("load pointer param " + name)
                         );
                     } else {
                         p = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
-                                new GEPInst(p, new ArrayType(((ConstCharArraySymbol)arrayParam).values.length, Type.i8), arrayParam.address, new Immediate(0))
+                                new GEPInst(p, new ArrayType(((ConstCharArraySymbol)arrayParam).values.length, Type.i8), arrayParam.address, new Immediate(0)).
+                                        setComment("load pointer param " + name)
                         );
                     }
                     params.add(new Function.Param(paramType, p));
                 } else {
                     Value expValue = visitExp(exp);  // 均为i32类型
-                    if (paramType.equals(Type.i8)) {
+                    if (paramType.equals(Type.i8) && expValue instanceof Slot) {
                         Value truc = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
                                 new TruncInst(truc, Type.i32, expValue, Type.i8)
@@ -304,7 +308,8 @@ public class ExpVisitor {
                         // !a逻辑运算结果等价于与(a==0)
                         Value s = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
-                                new BinaryInst(s, BinaryInst.BinaryOp.eq, Type.i32, new Immediate(0), result)
+                                new BinaryInst(s, BinaryInst.BinaryOp.eq, Type.i32, new Immediate(0), result).
+                                        setComment("NOT operation")
                         );
                         Value zext = new Slot(visitor.curFunction);
                         visitor.curBasicBlock().addInst(
@@ -342,22 +347,26 @@ public class ExpVisitor {
                 if (charArraySymbol.length == 0) {
                     // 数组指针参数
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(result, Type.i8, basePointer, expValue)
+                            new GEPInst(result, Type.i8, basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "] from param")
                     );
                 } else {
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(result, new ArrayType(charArraySymbol.length, Type.i8), basePointer, expValue)
+                            new GEPInst(result, new ArrayType(charArraySymbol.length, Type.i8), basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "]")
                     );
                 }
             } else if (symbol instanceof IntArraySymbol intArraySymbol){
                 if (intArraySymbol.length == 0) {
                     // 数组指针参数
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(result, Type.i32, basePointer, expValue)
+                            new GEPInst(result, Type.i32, basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "] from param")
                     );
                 } else {
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(result, new ArrayType(intArraySymbol.length, Type.i32), basePointer, expValue)
+                            new GEPInst(result, new ArrayType(intArraySymbol.length, Type.i32), basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "]")
                     );
                 }
             }  // 不考虑对常量赋值
@@ -403,11 +412,13 @@ public class ExpVisitor {
                 if (charArraySymbol.length == 0) {
                     // 数组指针参数
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(pointer, Type.i8, basePointer, expValue)
+                            new GEPInst(pointer, Type.i8, basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "] from param")
                     );
                 } else {
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(pointer, new ArrayType(charArraySymbol.length, Type.i8), basePointer, expValue)
+                            new GEPInst(pointer, new ArrayType(charArraySymbol.length, Type.i8), basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "]")
                     );
                 }
             } else if (symbol instanceof IntArraySymbol intArraySymbol) {
@@ -415,29 +426,34 @@ public class ExpVisitor {
                 if (intArraySymbol.length == 0) {
                     // 数组指针参数
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(pointer, Type.i32, basePointer, expValue)
+                            new GEPInst(pointer, Type.i32, basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "] from param")
                     );
                 } else {
                     visitor.curBasicBlock().addInst(
-                            new GEPInst(pointer, new ArrayType(intArraySymbol.length, Type.i32), basePointer, expValue)
+                            new GEPInst(pointer, new ArrayType(intArraySymbol.length, Type.i32), basePointer, expValue).
+                                    setComment("get &" + token.getValue() + "[" + expValue.toText() + "]")
                     );
                 }
             } else if (symbol instanceof ConstCharArraySymbol constCharArraySymbol) {
                 eleType = Type.i8;
                 visitor.curBasicBlock().addInst(
-                        new GEPInst(pointer, new ArrayType(constCharArraySymbol.values.length, Type.i8), basePointer, expValue)
+                        new GEPInst(pointer, new ArrayType(constCharArraySymbol.values.length, Type.i8), basePointer, expValue).
+                                setComment("get &" + token.getValue() + "[" + expValue.toText() + "]")
                 );
             } else {
                 ConstIntArraySymbol constIntArraySymbol = (ConstIntArraySymbol) symbol;
                 eleType = Type.i32;
                 visitor.curBasicBlock().addInst(
-                        new GEPInst(pointer, new ArrayType(constIntArraySymbol.values.length, Type.i32), basePointer, expValue)
+                        new GEPInst(pointer, new ArrayType(constIntArraySymbol.values.length, Type.i32), basePointer, expValue).
+                                setComment("get &" + token.getValue() + "[" + expValue.toText() + "]")
                 );
             }
             // 再根据指针取值
             Value result = new Slot(visitor.curFunction);
             visitor.curBasicBlock().addInst(
-                    new LoadInst(result, eleType, new PointerType(eleType), pointer)
+                    new LoadInst(result, eleType, new PointerType(eleType), pointer).
+                            setComment("load value of " + token.getValue() + "[" + expValue.toText() + "]")
             );
             // 若为char型，则用zext转换类型
             if (eleType.equals(Type.i8)) {
@@ -457,13 +473,15 @@ public class ExpVisitor {
             } else if (symbol.type == Symbol.SymbolType.Int) {
                 Value result = new Slot(visitor.curFunction);  // slot加入在continue新建块之前！！！
                 visitor.curBasicBlock().addInst(
-                        new LoadInst(result, Type.i32, new PointerType(Type.i32), symbol.address)
+                        new LoadInst(result, Type.i32, new PointerType(Type.i32), symbol.address).
+                                setComment("load value of " + token.getValue())
                 );
                 return result;
             } else { // Char
                 Value result = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
-                        new LoadInst(result, Type.i8, new PointerType(Type.i8), symbol.address)
+                        new LoadInst(result, Type.i8, new PointerType(Type.i8), symbol.address).
+                                setComment("load value of " + token.getValue())
                 );
                 Value zext = new Slot(visitor.curFunction);
                 visitor.curBasicBlock().addInst(
@@ -487,6 +505,10 @@ public class ExpVisitor {
             );
         } else {
             BasicBlock newBlock = new BasicBlock();
+            // link
+            visitor.curBasicBlock().linkTo(newBlock);
+            newBlock.linkTo(trueJump);
+            newBlock.linkTo(falseJump);
             visitLAndExp(lOrExp.getlAndExp(),
                     trueJump,
                     newBlock
@@ -495,6 +517,10 @@ public class ExpVisitor {
             for (; i < lOrExp.getOpLAndExps().size() - 1; i++) {
                 LAndExp lAndExp = lOrExp.getOpLAndExps().get(i).lAndExp;
                 BasicBlock nextNewBlock = new BasicBlock();
+                // link
+                newBlock.linkTo(nextNewBlock);
+                nextNewBlock.linkTo(trueJump);
+                nextNewBlock.linkTo(falseJump);
                 visitor.curFunction.addBasicBlock(newBlock);
                 visitor.checkoutBlock(newBlock);
                 visitLAndExp(lAndExp,
@@ -519,15 +545,21 @@ public class ExpVisitor {
             Value eqExpValue = visitEqExp(lAndExp.getEqExp());
             // 生成跳转指令
             visitor.curBasicBlock().addInst(
-                    new BrCondInst(eqExpValue, trueJump.label, falseJump.label)
+                    new BrCondInst(eqExpValue, trueJump.label, falseJump.label).
+                            setComment("single LAndExp")
             );
+            visitor.curBasicBlock().linkTo(trueJump);
+            visitor.curBasicBlock().linkTo(falseJump);
         } else {
             BasicBlock newBlock = new BasicBlock();
             Value eqExpValue = visitEqExp(lAndExp.getEqExp());
             // 生成跳转指令
             visitor.curBasicBlock().addInst(
-                    new BrCondInst(eqExpValue, newBlock.label, falseJump.label)
+                    new BrCondInst(eqExpValue, newBlock.label, falseJump.label).
+                            setComment("#1 LAndExp")
             );
+            visitor.curBasicBlock().linkTo(newBlock);
+            visitor.curBasicBlock().linkTo(falseJump);
             int i = 0;
             for (; i < lAndExp.getOpEqExps().size() - 1; i++) {
                 EqExp eqExp = lAndExp.getOpEqExps().get(i).eqExp;
@@ -536,8 +568,11 @@ public class ExpVisitor {
                 visitor.checkoutBlock(newBlock);
                 eqExpValue = visitEqExp(eqExp);
                 visitor.curBasicBlock().addInst(
-                        new BrCondInst(eqExpValue, nextNewBlock.label, falseJump.label)
+                        new BrCondInst(eqExpValue, nextNewBlock.label, falseJump.label).
+                                setComment("#" + (i + 2) + " LAndExp")
                 );
+                visitor.curBasicBlock().linkTo(nextNewBlock);
+                visitor.curBasicBlock().linkTo(falseJump);
                 newBlock = nextNewBlock;
             }
             visitor.curFunction.addBasicBlock(newBlock);
@@ -545,8 +580,11 @@ public class ExpVisitor {
             EqExp eqExp = lAndExp.getOpEqExps().get(i).eqExp;
             eqExpValue = visitEqExp(eqExp);
             visitor.curBasicBlock().addInst(
-                    new BrCondInst(eqExpValue, trueJump.label, falseJump.label)
+                    new BrCondInst(eqExpValue, trueJump.label, falseJump.label).
+                            setComment("#" + (i + 2) + " LAndExp")
             );
+            visitor.curBasicBlock().linkTo(trueJump);
+            visitor.curBasicBlock().linkTo(falseJump);
         }
     }
 
@@ -556,9 +594,14 @@ public class ExpVisitor {
         Value left = visitRelExp(eqExp.getRelExp());
         if (eqExp.getOpRelExps().isEmpty()) {
             // 逻辑运算a等价于a!=0
+            if (left instanceof Immediate imm) {
+                // 可以计算得立即数，保证不会有操作数均为立即数的指令
+                return new Immediate(imm.immediate != 0 ? 1 : 0);
+            }
             Value result = new Slot(visitor.curFunction);
             visitor.curBasicBlock().addInst(
-                    new BinaryInst(result, BinaryInst.BinaryOp.ne, Type.i32, left, new Immediate(0))
+                    new BinaryInst(result, BinaryInst.BinaryOp.ne, Type.i32, left, new Immediate(0)).
+                            setComment("single RelExp, that is != 0")
             );
             return result;
         }
@@ -590,7 +633,7 @@ public class ExpVisitor {
         return left;
     }
 
-    // 返回i32类型（因为可能直接比较EqExp3==4这种）
+    // 返回i32类型（因为可能直接比较EqExp 3==4这种）
     public static Value visitRelExp(RelExp relExp) {
         Value left = visitAddExp(relExp.getAddExp());
         for (RelExp.OpAddExp opAddExp: relExp.getOpAddExps()) {
