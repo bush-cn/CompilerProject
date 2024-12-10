@@ -176,7 +176,7 @@ public class Translator {
                 // 非数组类型
                 curStackFrame.recordLocal((Slot)allocaInst.result, 4);
             }
-            mipsCode.addMIPSInst(new ADDI(r, Register.SP, -curStackFrame.getSize()).setComment(allocaInst.toText()));
+            mipsCode.addMIPSInst(new ADDIU(r, Register.SP, -curStackFrame.getSize()).setComment(allocaInst.toText()));
         } else if (instruction instanceof LoadInst loadInst) {
             if (loadInst.pointer instanceof GlobalVariable || loadInst.pointer instanceof GlobalArrayVar) {
                 // 全局变量
@@ -271,8 +271,8 @@ public class Translator {
             Register r = registerPool.allocDef(binaryInst, curStackFrame);
             // 生成MIPS指令
             switch (binaryInst.binaryOp) {
-                case add -> mipsCode.addMIPSInst(new ADD(r, s1, s2));   // 加
-                case sub -> mipsCode.addMIPSInst(new SUB(r, s1, s2));   // 减
+                case add -> mipsCode.addMIPSInst(new ADDU(r, s1, s2));   // 加
+                case sub -> mipsCode.addMIPSInst(new SUBU(r, s1, s2));   // 减
                 case mul -> mipsCode.addMIPSInst(new MUL(r, s1, s2));  // 乘
                 case sdiv -> mipsCode.addMIPSInst(new DIV(r, s1, s2));  // 除
                 case srem -> mipsCode.addMIPSInst(new REM(r, s1, s2));  // 取余
@@ -294,8 +294,8 @@ public class Translator {
                 Register r = registerPool.allocDef(binaryInst, curStackFrame);
                 // 生成MIPS指令
                 switch (binaryInst.binaryOp) {
-                    case add -> mipsCode.addMIPSInst(new ADDI(r, s, imm));   // 加
-                    case sub -> mipsCode.addMIPSInst(new SUBI(r, s, imm));   // 减
+                    case add -> mipsCode.addMIPSInst(new ADDIU(r, s, imm));   // 加
+                    case sub -> mipsCode.addMIPSInst(new SUBIU(r, s, imm));   // 减
                     // TODO: 开启优化，将乘法优化为移位、将除法优化为乘法？
                     case mul -> mipsCode.addMIPSInst(new MULI(r, s, imm));  // 乘
                     case sdiv -> mipsCode.addMIPSInst(new DIVI(r, s, imm));  // 除
@@ -320,7 +320,7 @@ public class Translator {
                     // 交换顺序不影响计算结果
                     // 生成MIPS指令
                     switch (binaryInst.binaryOp) {
-                        case add -> mipsCode.addMIPSInst(new ADDI(r, s, imm));   // 加
+                        case add -> mipsCode.addMIPSInst(new ADDIU(r, s, imm));   // 加
                         case mul -> mipsCode.addMIPSInst(new MULI(r, s, imm));  // 乘
                         case eq -> mipsCode.addMIPSInst(new SEQI(r, s, imm));
                         case ne -> mipsCode.addMIPSInst(new SNEI(r, s, imm));
@@ -340,7 +340,7 @@ public class Translator {
                     Register temp = registerPool.allocateTemp(curStackFrame);
                     mipsCode.addMIPSInst(new LI(temp, imm));
                     switch (binaryInst.binaryOp) {
-                        case sub -> mipsCode.addMIPSInst(new SUB(r, temp, s));   // 减
+                        case sub -> mipsCode.addMIPSInst(new SUBU(r, temp, s));   // 减
                         case sdiv -> mipsCode.addMIPSInst(new DIV(r, temp, s));  // 除
                         case srem -> mipsCode.addMIPSInst(new REM(r, temp, s));  // 取余
                     }
@@ -365,7 +365,7 @@ public class Translator {
                 Register tmp = registerPool.allocateTemp(curStackFrame);
                 mipsCode.addMIPSInst(new SLL(tmp, index, 2));     // tmp = index * 4
                 mipsCode.addMIPSInst(new LALabel(r, ((GlobalValue)gepInst.arrayValue).name));
-                mipsCode.addMIPSInst(new ADD(r, r, tmp));      // r = r + tmp
+                mipsCode.addMIPSInst(new ADDU(r, r, tmp));      // r = r + tmp
             } else {
                 // 局部变量
                 Register pointer = registerPool.find((Slot) gepInst.arrayValue, curStackFrame);
@@ -373,7 +373,7 @@ public class Translator {
                 Register r = registerPool.allocDef(gepInst, curStackFrame);
                 Register tmp = registerPool.allocateTemp(curStackFrame);
                 mipsCode.addMIPSInst(new SLL(tmp, index, 2));     // t = index * 4
-                mipsCode.addMIPSInst(new ADD(r, pointer, tmp));               // r = p + t
+                mipsCode.addMIPSInst(new ADDU(r, pointer, tmp));               // r = p + t
             }
         } else {
             int imm = ((Immediate) gepInst.index).immediate;
@@ -387,7 +387,7 @@ public class Translator {
                 Register pointer = registerPool.find((Slot) gepInst.arrayValue, curStackFrame);
                 registerPool.deallocUse(gepInst);
                 Register r = registerPool.allocDef(gepInst, curStackFrame);
-                mipsCode.addMIPSInst(new ADDI(r, pointer, imm * 4));
+                mipsCode.addMIPSInst(new ADDIU(r, pointer, imm * 4));
             }
         }
     }
@@ -476,9 +476,9 @@ public class Translator {
         }
         registerPool.deallocUse(callInst);      // 只有在find完后才能deallocUse
         // 调用函数，生成MIPS指令
-        mipsCode.addMIPSInst(new ADDI(Register.SP, Register.SP, -curStackFrame.getSize())); // 更改sp寄存器的值
+        mipsCode.addMIPSInst(new ADDIU(Register.SP, Register.SP, -curStackFrame.getSize())); // 更改sp寄存器的值
         mipsCode.addMIPSInst(new JAL(new Label(callInst.name)));
-        mipsCode.addMIPSInst(new ADDI(Register.SP, Register.SP, curStackFrame.getSize())); // 恢复sp寄存器的值
+        mipsCode.addMIPSInst(new ADDIU(Register.SP, Register.SP, curStackFrame.getSize())); // 恢复sp寄存器的值
         // 恢复寄存器和栈帧
         List<Register> savedRegisters = curStackFrame.getSavedRegisters();
         for (int i = 0; i < savedRegisters.size(); i++) {

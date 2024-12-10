@@ -2,7 +2,6 @@ package backend;
 
 import backend.instructions.MemInst.LW;
 import backend.instructions.MemInst.SW;
-import backend.instructions.RIInst.ADDI;
 import midend.llvm.BasicBlock;
 import midend.llvm.Function;
 import midend.llvm.Instruction;
