@@ -27,7 +27,7 @@ public class LWLabel extends MIPSInst {
         if (offset == 0) {
             return "lw " + dest + ", " + globalVar;
         } else {
-            return "lw " + dest + ", " + globalVar + "+" + offset;
+            return "lw " + dest + ", " + globalVar + " + " + offset;
         }
     }
 }

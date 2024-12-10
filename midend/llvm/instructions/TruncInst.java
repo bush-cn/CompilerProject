@@ -18,7 +18,9 @@ public class TruncInst extends Instruction {
         this.type2 = type2;
 
         def.add((Slot)result);
-        use.add((Slot)value);
+        if (value instanceof Slot slot) {
+            use.add(slot);
+        }
     }
 
     @Override

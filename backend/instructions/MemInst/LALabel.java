@@ -9,14 +9,26 @@ import backend.instructions.MIPSInst;
 public class LALabel extends MIPSInst {
     public Register dest;
     public String globalVar;
+    public int offset;
 
     public LALabel(Register dest, String globalVar) {
         this.dest = dest;
         this.globalVar = globalVar;
+        this.offset = 0;
+    }
+
+    public LALabel(Register dest, String globalVar, int offset) {
+        this.dest = dest;
+        this.globalVar = globalVar;
+        this.offset = offset;
     }
 
     @Override
     public String toMIPS() {
-        return "la " + dest + ", " + globalVar;
+        if (offset == 0) {
+            return "la " + dest + ", " + globalVar;
+        } else {
+            return "la " + dest + ", " + globalVar + " + " + offset;
+        }
     }
 }

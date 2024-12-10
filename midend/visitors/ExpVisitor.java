@@ -279,9 +279,9 @@ public class ExpVisitor {
                 Character character = (Character) primaryExp;
                 char c = character.getCharConst().getCharConst().getValue().charAt(1);
                 if (c != '\\') {
-                    return new Immediate(c);
+                    result = new Immediate(c);
                 } else {
-                    return new Immediate(getEscapedCharacter(character.getCharConst().getCharConst().getValue().charAt(2)));
+                    result = new Immediate(getEscapedCharacter(character.getCharConst().getCharConst().getValue().charAt(2)));
                 }
             }
         }

@@ -329,7 +329,7 @@ public class StmtVisitor {
         };
         Value value = ExpVisitor.visitExp(forStmt.getExp());
         // 若为i8则truc
-        if (type.equals(Type.i8)) {
+        if (type.equals(Type.i8) && value instanceof Slot) {
             Value truc = new Slot(visitor.curFunction);
             visitor.curBasicBlock().addInst(
                     new TruncInst(truc, Type.i32, value, Type.i8)

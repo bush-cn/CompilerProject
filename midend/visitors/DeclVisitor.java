@@ -284,12 +284,19 @@ public class DeclVisitor {
                                     new StoreInst(type.eleType, new Immediate(str.charAt(i)), new PointerType(type.eleType), s).setComment("init " + token.getValue() + "[" + (i - 1) + "]")
                             );
                         }
-                        // 若字符串长度不够，后面的不补0？
+                        // [最后的bug] 用字符串初始化，字符串后隐含一个\0也需要保存
+                        Slot s = new Slot(visitor.curFunction);
+                        visitor.curBasicBlock().addInst(
+                                new GEPInst(s, type, arrayValue, new Immediate(str.length() - 2)).setComment("get &" + token.getValue() + "[" + (str.length() - 2) + "]")
+                        );
+                        visitor.curBasicBlock().addInst(
+                                new StoreInst(type.eleType, new Immediate(0), new PointerType(type.eleType), s).setComment("append '\\0' at end")
+                        );
                     } else {
                         for (int i = 0; i < varDef.getInitVal().getExps().size(); i++) {
                             Exp exp = varDef.getInitVal().getExps().get(i);
                             Value initValue = ExpVisitor.visitExp(exp);
-                            if (type.eleType.equals(Type.i8)) {
+                            if (type.eleType.equals(Type.i8) && initValue instanceof Slot) {
                                 Value truc = new Slot(visitor.curFunction);
                                 visitor.curBasicBlock().addInst(
                                         new TruncInst(truc, Type.i32, initValue, Type.i8)

@@ -4,145 +4,21 @@ declare void @putint(i32)
 declare void @putch(i32)
 declare void @putstr(i8*)
 
-@constInt = dso_local constant i32 10
-@constCharA = dso_local constant i8 65
-@constCharB = dso_local constant i8 66
-@varInt = dso_local global i32 0
-@varIntB = dso_local global i32 5
-@varIntC = dso_local global i32 15
-@varChar = dso_local global i8 0
-@.str.0 = private unnamed_addr constant [29 x i8] c"Function with no parameters\0A\00", align 1
-
-define dso_local void @functionNoParam() {
-0:								 ; preds =
-	call void @putstr(i8* getelementptr inbounds ([29 x i8], [29 x i8]* @.str.0, i64 0, i64 0))
-	ret void
-}
-
-@.str.1 = private unnamed_addr constant [37 x i8] c"Function with single parameter, x = \00", align 1
-@.str.2 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-
-define dso_local i32 @functionSingleParam(i32 %0) {
-1:								 ; preds =
-	%2 = alloca i32				;alloc addr for fParam x
-	store i32 %0, i32* %2			;store fParam slot
-	call void @putstr(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @.str.1, i64 0, i64 0))
-	%3 = load i32, i32* %2		;load value of x
-	call void @putint(i32 %3)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.2, i64 0, i64 0))
-	%4 = load i32, i32* %2		;load value of x
-	%5 = load i32, i32* %2		;load value of x
-	%6 = sub i32 %4, %5
-	%7 = add i32 %6, 8
-	ret i32 %7
-}
-
-@.str.3 = private unnamed_addr constant [31 x i8] c"Function with parameters: a = \00", align 1
-@.str.4 = private unnamed_addr constant [7 x i8] c", b = \00", align 1
-@.str.5 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-
-define dso_local i32 @functionWithParams(i32 %0, i8 %1) {
-2:								 ; preds =
-	%3 = alloca i32				;alloc addr for fParam a
-	store i32 %0, i32* %3			;store fParam slot
-	%4 = alloca i8				;alloc addr for fParam b
-	store i8 %1, i8* %4			;store fParam slot
-	call void @putstr(i8* getelementptr inbounds ([31 x i8], [31 x i8]* @.str.3, i64 0, i64 0))
-	%5 = load i32, i32* %3		;load value of a
-	call void @putint(i32 %5)
-	call void @putstr(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @.str.4, i64 0, i64 0))
-	%6 = load i8, i8* %4		;load value of b
-	%7 = zext i8 %6 to i32
-	call void @putch(i32 %7)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.5, i64 0, i64 0))
-	%8 = load i32, i32* %3		;load value of a
-	%9 = load i8, i8* %4		;load value of b
-	%10 = zext i8 %9 to i32
-	%11 = add i32 %8, %10
-	ret i32 %11
-}
-
-@.str.6 = private unnamed_addr constant [32 x i8] c"Function returning a character\0A\00", align 1
-
-define dso_local i8 @functionReturnChar() {
-0:								 ; preds =
-	call void @putstr(i8* getelementptr inbounds ([32 x i8], [32 x i8]* @.str.6, i64 0, i64 0))
-	ret i8 67
-}
-
-@.str.7 = private unnamed_addr constant [10 x i8] c"22373141\0A\00", align 1
-@.str.8 = private unnamed_addr constant [31 x i8] c"Result of functionWithParams: \00", align 1
-@.str.9 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-@.str.10 = private unnamed_addr constant [21 x i8] c"Character returned: \00", align 1
-@.str.11 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-@.str.12 = private unnamed_addr constant [32 x i8] c"Result of functionSingleParam: \00", align 1
-@.str.13 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-@.str.14 = private unnamed_addr constant [16 x i8] c"Input integer: \00", align 1
-@.str.15 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-@.str.16 = private unnamed_addr constant [18 x i8] c"Input character: \00", align 1
-@.str.17 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@s1 = dso_local global [10 x i8] [i8 104, i8 101, i8 108, i8 108, i8 111, i8 34, i8 0, i8 0, i8 0, i8 0]
 
 define dso_local i32 @main() {
 0:								 ; preds =
-	call void @putstr(i8* getelementptr inbounds ([10 x i8], [10 x i8]* @.str.7, i64 0, i64 0))
-	%1 = alloca i32				;decl var: a
-	%2 = load i32, i32* @varIntB		;load value of varIntB
-	%3 = add i32 10, %2
-	store i32 %3, i32* %1			;init var: a
-	%4 = load i32, i32* %1		;load value of a
-	%5 = load i32, i32* @varIntC		;load value of varIntC
-	%6 = mul i32 %4, %5
-	store i32 %6, i32* @varInt
-	store i8 65, i8* @varChar
-	%7 = load i32, i32* %1		;load value of a
-	%8 = load i32, i32* @varInt		;load value of varInt
-	%9 = add i32 %7, %8
-	call void @functionNoParam()
-	%10 = alloca i32				;decl var: result
-	%11 = load i32, i32* %1		;load value of a
-	%12 = load i8, i8* @varChar		;load value of varChar
-	%13 = zext i8 %12 to i32
-	%14 = trunc i32 %13 to i8
-	%15 = call i32 @functionWithParams(i32 %11, i8 %14)
-	store i32 %15, i32* %10			;init var: result
-	call void @putstr(i8* getelementptr inbounds ([31 x i8], [31 x i8]* @.str.8, i64 0, i64 0))
-	%16 = load i32, i32* %10		;load value of result
-	call void @putint(i32 %16)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.9, i64 0, i64 0))
-	%17 = alloca i8				;decl var: ch
-	%18 = call i8 @functionReturnChar()
-	%19 = zext i8 %18 to i32
-	%20 = trunc i32 %19 to i8
-	store i8 %20, i8* %17			;init var: ch
-	call void @putstr(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @.str.10, i64 0, i64 0))
-	%21 = load i8, i8* %17		;load value of ch
-	%22 = zext i8 %21 to i32
-	call void @putch(i32 %22)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.11, i64 0, i64 0))
-	%23 = alloca i32				;decl var: singleResult
-	%24 = load i32, i32* %1		;load value of a
-	%25 = call i32 @functionSingleParam(i32 %24)
-	store i32 %25, i32* %23			;init var: singleResult
-	call void @putstr(i8* getelementptr inbounds ([32 x i8], [32 x i8]* @.str.12, i64 0, i64 0))
-	%26 = load i32, i32* %23		;load value of singleResult
-	call void @putint(i32 %26)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.13, i64 0, i64 0))
-	%27 = alloca i32				;decl var: inputInt
-	%28 = call i32 @getint()
-	store i32 %28, i32* %27
-	call void @putstr(i8* getelementptr inbounds ([16 x i8], [16 x i8]* @.str.14, i64 0, i64 0))
-	%29 = load i32, i32* %27		;load value of inputInt
-	call void @putint(i32 %29)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.15, i64 0, i64 0))
-	%30 = alloca i8				;decl var: inputChar
-	%31 = call i32 @getchar()
-	%32 = trunc i32 %31 to i8
-	store i8 %32, i8* %30
-	call void @putstr(i8* getelementptr inbounds ([18 x i8], [18 x i8]* @.str.16, i64 0, i64 0))
-	%33 = load i8, i8* %30		;load value of inputChar
-	%34 = zext i8 %33 to i32
-	call void @putch(i32 %34)
-	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.17, i64 0, i64 0))
+	%1 = alloca [10 x i8]				;decl var array: s2
+	%2 = getelementptr [10 x i8], [10 x i8]* %1, i32 0, i32 0		;get &s2[0]
+	store i8 119, i8* %2			;init s2[0]
+	%3 = getelementptr [10 x i8], [10 x i8]* %1, i32 0, i32 1		;get &s2[1]
+	store i8 111, i8* %3			;init s2[1]
+	%4 = getelementptr [10 x i8], [10 x i8]* %1, i32 0, i32 2		;get &s2[2]
+	store i8 114, i8* %4			;init s2[2]
+	%5 = getelementptr [10 x i8], [10 x i8]* %1, i32 0, i32 3		;get &s2[3]
+	store i8 108, i8* %5			;init s2[3]
+	%6 = getelementptr [10 x i8], [10 x i8]* %1, i32 0, i32 4		;get &s2[4]
+	store i8 100, i8* %6			;init s2[4]
 	ret i32 0
 }
 
