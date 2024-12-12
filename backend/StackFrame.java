@@ -36,15 +36,14 @@ public class StackFrame {
 
     public void saveRegister(Register register) {
         savedRegisters.add(register);
-        size += 4;
     }
 
     public void addArgNum() {
         size += 4;
     }
 
-    public void restore(int downSize) {
-        size -= downSize;
+    public void restore(int formerSize) {
+        size = formerSize;
         savedRegisters.clear();
     }
     public StackFrame() {
@@ -55,6 +54,11 @@ public class StackFrame {
     public void recordLocal(Slot slot, int totalSize) {
         size += totalSize;      // i8类型也分配4字节
         slotOffset.put(slot, -size);
+    }
+
+    // 分配栈空间
+    public void allocStackSize(int totalSize) {
+        size += totalSize;
     }
 
     // 判断是否为局部变量

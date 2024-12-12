@@ -50,6 +50,10 @@ public class DataFlow {
                 for (BasicBlock basicBlock: basicBlocks) {
                     function.interBlockLive.addAll(basicBlock.liveIn);
                     function.interBlockLive.addAll(basicBlock.liveOut);
+                    // 函数参数一概不分配寄存器，因此尽管在参数中出现，也不加入跨块活跃变量集合
+                    for (Function.Param param: function.params) {
+                        function.interBlockLive.remove((Slot)param.value);
+                    }
                 }
             }
         }

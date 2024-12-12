@@ -10,6 +10,7 @@ import backend.instructions.RIInst.*;
 import backend.instructions.RRInst.*;
 import backend.instructions.SYSCALL;
 import backend.optimizer.DataFlow;
+import backend.optimizer.Graph;
 import midend.llvm.*;
 import midend.llvm.Module;
 import midend.llvm.globalvalues.ConstString;
@@ -17,11 +18,9 @@ import midend.llvm.globalvalues.GlobalArrayVar;
 import midend.llvm.globalvalues.GlobalVariable;
 import midend.llvm.instructions.*;
 import midend.llvm.types.ArrayType;
-import midend.llvm.types.Type;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 后端单例类
@@ -69,7 +68,11 @@ public class Translator {
             } else if (globalValue instanceof GlobalArrayVar globalArrayVar) {
                 // 数组全局变量
                 mipsCode.addDataPseudo(translateGlobalArrayVar(globalArrayVar));
-            } else if (globalValue instanceof ConstString constString) {
+            }
+        }
+        // 免去4字节对齐，最后加入字符串常量
+        for (GlobalValue globalValue : module.globalValues) {
+            if (globalValue instanceof ConstString constString) {
                 // 字符串常量
                 mipsCode.addDataPseudo(new DataPseudo(constString.name, DataPseudo.DataType.ASCIIZ, '\"' + constString.constString + '\"'));
             }
@@ -141,9 +144,10 @@ public class Translator {
         registerPool = new RegisterPool(mipsCode, function);
         curStackFrame = new StackFrame();
         curFunction = function;
+        // 图着色全局寄存器分配
+        Graph.graphColoring(function, registerPool, curStackFrame);
         for (BasicBlock basicBlock : function.basicBlocks) {
             translateBasicBlock(mipsCode, basicBlock);
-            registerPool.deallocUse(basicBlock);    // 释放基跨块活跃变量
         }
     }
 
@@ -151,6 +155,7 @@ public class Translator {
         mipsCode.addLabel(new Label(curFunction, basicBlock.label));
         for (midend.llvm.Instruction instruction : basicBlock.instructions) {
             translateInstruction(mipsCode, instruction);
+            registerPool.flushTemp();   // 清空temp
         }
     }
 
@@ -158,44 +163,66 @@ public class Translator {
      * 翻译大多数指令的步骤如下：
      *      1. 使用 find 获取 use 的寄存器
      *      2. 使用 deallocUse 回收 use 中不活跃变量的寄存器
-     *      2. 使用 allocDef 分配 def 使用的寄存器
+     *      2. 使用 allocDef 分配 def 使用的寄存器【allocDef可能返回null，此时需要保存到栈上】
+     *      3. 使用 allocTemp 分配不绑定slot的寄存器
      *      3. 生成MIPS指令
      *
      * @param mipsCode MIPS代码
      * @param instruction 中间代码指令
      */
     private void translateInstruction(MIPSCode mipsCode, Instruction instruction) {
-        if (instruction instanceof AllocaInst allocaInst) {
+        if (instruction instanceof AllocaInst allocaInst) { // 【result存的是地址！】
             registerPool.deallocUse(allocaInst);
             Register r = registerPool.allocDef(allocaInst, curStackFrame);
-            // 记录Slot对应的地址在栈上的偏移
+            int totalSize;
             if (allocaInst.type instanceof ArrayType arrayType) {
                 // 数组类型
-                curStackFrame.recordLocal((Slot)allocaInst.result, arrayType.length * 4);
+                totalSize = arrayType.length * 4;
             } else {
                 // 非数组类型
-                curStackFrame.recordLocal((Slot)allocaInst.result, 4);
+                totalSize = 4;
             }
-            mipsCode.addMIPSInst(new ADDIU(r, Register.SP, -curStackFrame.getSize()).setComment(allocaInst.toText()));
+            curStackFrame.allocStackSize(totalSize);    // 分配栈空间
+            if (r != null) {
+                mipsCode.addMIPSInst(new ADDIU(r, Register.SP, -curStackFrame.getSize()).setComment(allocaInst.toText()));
+            } else {
+                // 若r为null，不需要分配寄存器，保存地址在栈上
+                Register temp = registerPool.allocTemp(curStackFrame);  // temp存的是地址，但是要保存在栈上
+                mipsCode.addMIPSInst(new ADDIU(temp, Register.SP, -curStackFrame.getSize()).setComment(allocaInst.toText()));
+                curStackFrame.recordLocal((Slot)allocaInst.result, 4);  // 地址大小为4字节
+                mipsCode.addMIPSInst(new SW(temp, Register.SP, curStackFrame.getOffset((Slot)allocaInst.result)).setComment("spilled inter-alive"));
+            }
         } else if (instruction instanceof LoadInst loadInst) {
             if (loadInst.pointer instanceof GlobalVariable || loadInst.pointer instanceof GlobalArrayVar) {
                 // 全局变量
                 Register r = registerPool.allocDef(loadInst, curStackFrame);
-                mipsCode.addMIPSInst(new LWLabel(r, ((GlobalValue)loadInst.pointer).name));
+                if (r != null) {
+                    mipsCode.addMIPSInst(new LWLabel(r, ((GlobalValue)loadInst.pointer).name));
+                } else {
+                    Register temp = registerPool.allocTemp(curStackFrame);
+                    mipsCode.addMIPSInst(new LWLabel(temp, ((GlobalValue)loadInst.pointer).name));
+                    mipsCode.addMIPSInst(new SW(temp, Register.SP, curStackFrame.getOffset((Slot)loadInst.result)));
+                }
             } else {
                 // 局部变量
                 Register p = registerPool.find((Slot) loadInst.pointer, curStackFrame);
                 registerPool.deallocUse(loadInst);
                 Register r = registerPool.allocDef(loadInst, curStackFrame);
-                // 从栈中加载
-                mipsCode.addMIPSInst(new LW(r, p, 0));
+                if (r != null) {
+                    // 从栈中加载
+                    mipsCode.addMIPSInst(new LW(r, p, 0));
+                } else {
+                    Register temp = registerPool.allocTemp(curStackFrame);
+                    mipsCode.addMIPSInst(new LW(temp, p, 0));
+                    mipsCode.addMIPSInst(new SW(temp, Register.SP, curStackFrame.getOffset((Slot)loadInst.result)));
+                }
             }
         } else if (instruction instanceof StoreInst storeInst) {
             Register v;
             if (storeInst.initValue instanceof Slot) {
                 v = registerPool.find((Slot) storeInst.initValue, curStackFrame);
             } else {
-                v = registerPool.allocateTemp(curStackFrame);
+                v = registerPool.allocTemp(curStackFrame);
                 mipsCode.addMIPSInst(new LI(v, ((Immediate) storeInst.initValue).immediate));
             }
             if (storeInst.pointer instanceof GlobalVariable || storeInst.pointer instanceof GlobalArrayVar) {
@@ -269,6 +296,11 @@ public class Translator {
             Register s2 = registerPool.find((Slot) binaryInst.op2, curStackFrame);
             registerPool.deallocUse(binaryInst);
             Register r = registerPool.allocDef(binaryInst, curStackFrame);
+            boolean spillInterLive = false;
+            if (r == null) {
+                r = registerPool.allocTemp(curStackFrame);
+                spillInterLive = true;
+            }
             // 生成MIPS指令
             switch (binaryInst.binaryOp) {
                 case add -> mipsCode.addMIPSInst(new ADDU(r, s1, s2));   // 加
@@ -284,6 +316,9 @@ public class Translator {
                 case sle -> mipsCode.addMIPSInst(new SLE(r, s1, s2));
                 default -> throw new RuntimeException("Unknown binary operation: " + binaryInst.binaryOp);
             }
+            if (spillInterLive) {
+                mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) binaryInst.result)));
+            }
         } else {
             // RI指令，不会有两个操作数全是立即数的情况，但需要注意立即数和寄存器的顺序
             if (binaryInst.op1 instanceof Slot && binaryInst.op2 instanceof Immediate) {
@@ -292,6 +327,11 @@ public class Translator {
                 int imm = ((Immediate) binaryInst.op2).immediate;
                 registerPool.deallocUse(binaryInst);
                 Register r = registerPool.allocDef(binaryInst, curStackFrame);
+                boolean spillInterLive = false;
+                if (r == null) {
+                    r = registerPool.allocTemp(curStackFrame);
+                    spillInterLive = true;
+                }
                 // 生成MIPS指令
                 switch (binaryInst.binaryOp) {
                     case add -> mipsCode.addMIPSInst(new ADDIU(r, s, imm));   // 加
@@ -308,11 +348,19 @@ public class Translator {
                     case sle -> mipsCode.addMIPSInst(new SLEI(r, s, imm));
                     default -> throw new RuntimeException("Unknown binary operation: " + binaryInst.binaryOp);
                 }
+                if (spillInterLive) {
+                    mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) binaryInst.result)));
+                }
             } else {
                 Register s = registerPool.find((Slot) binaryInst.op2, curStackFrame);
                 int imm = ((Immediate) binaryInst.op1).immediate;
                 registerPool.deallocUse(binaryInst);
                 Register r = registerPool.allocDef(binaryInst, curStackFrame);
+                boolean spillInterLive = false;
+                if (r == null) {
+                    r = registerPool.allocTemp(curStackFrame);
+                    spillInterLive = true;
+                }
                 // 与MIPS指令顺序相反，第一个操作数是立即数
                 // 【add, mul, eq, ne】交换顺序不影响计算结果，【sgt, slt, sge, sle】可交换并取反，【sub, sdiv, srem】不可交换
                 if (binaryInst.binaryOp == BinaryInst.BinaryOp.add || binaryInst.binaryOp == BinaryInst.BinaryOp.mul
@@ -337,7 +385,7 @@ public class Translator {
                         || binaryInst.binaryOp == BinaryInst.BinaryOp.srem) {
                     // 【sub, sdiv, srem】不可交换
                     // 生成MIPS指令
-                    Register temp = registerPool.allocateTemp(curStackFrame);
+                    Register temp = registerPool.allocTemp(curStackFrame);
                     mipsCode.addMIPSInst(new LI(temp, imm));
                     switch (binaryInst.binaryOp) {
                         case sub -> mipsCode.addMIPSInst(new SUBU(r, temp, s));   // 减
@@ -345,6 +393,9 @@ public class Translator {
                         case srem -> mipsCode.addMIPSInst(new REM(r, temp, s));  // 取余
                     }
                 } // 增加其他LLVM指令
+                if (spillInterLive) {
+                    mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) binaryInst.result)));
+                }
             }
         }
     }
@@ -362,18 +413,34 @@ public class Translator {
                 // 全局变量
                 registerPool.deallocUse(gepInst);
                 Register r = registerPool.allocDef(gepInst, curStackFrame);
-                Register tmp = registerPool.allocateTemp(curStackFrame);
+                boolean spillInterLive = false;
+                if (r == null) {
+                    r = registerPool.allocTemp(curStackFrame);
+                    spillInterLive = true;
+                }
+                Register tmp = registerPool.allocTemp(curStackFrame);
                 mipsCode.addMIPSInst(new SLL(tmp, index, 2));     // tmp = index * 4
                 mipsCode.addMIPSInst(new LALabel(r, ((GlobalValue)gepInst.arrayValue).name));
                 mipsCode.addMIPSInst(new ADDU(r, r, tmp));      // r = r + tmp
+                if (spillInterLive) {
+                    mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) gepInst.result)));
+                }
             } else {
                 // 局部变量
                 Register pointer = registerPool.find((Slot) gepInst.arrayValue, curStackFrame);
                 registerPool.deallocUse(gepInst);
                 Register r = registerPool.allocDef(gepInst, curStackFrame);
-                Register tmp = registerPool.allocateTemp(curStackFrame);
+                boolean spillInterLive = false;
+                if (r == null) {
+                    r = registerPool.allocTemp(curStackFrame);
+                    spillInterLive = true;
+                }
+                Register tmp = registerPool.allocTemp(curStackFrame);
                 mipsCode.addMIPSInst(new SLL(tmp, index, 2));     // t = index * 4
                 mipsCode.addMIPSInst(new ADDU(r, pointer, tmp));               // r = p + t
+                if (spillInterLive) {
+                    mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) gepInst.result)));
+                }
             }
         } else {
             int imm = ((Immediate) gepInst.index).immediate;
@@ -381,13 +448,25 @@ public class Translator {
                 // 全局变量
                 registerPool.deallocUse(gepInst);
                 Register r = registerPool.allocDef(gepInst, curStackFrame);
-                mipsCode.addMIPSInst(new LALabel(r, ((GlobalValue)gepInst.arrayValue).name, imm * 4));
+                if (r != null) {
+                    mipsCode.addMIPSInst(new LALabel(r, ((GlobalValue)gepInst.arrayValue).name, imm * 4));
+                } else {
+                    Register temp = registerPool.allocTemp(curStackFrame);
+                    mipsCode.addMIPSInst(new LALabel(temp, ((GlobalValue)gepInst.arrayValue).name, imm * 4));
+                    mipsCode.addMIPSInst(new SW(temp, Register.SP, curStackFrame.getOffset((Slot) gepInst.result)));
+                }
             } else {
                 // 局部变量
                 Register pointer = registerPool.find((Slot) gepInst.arrayValue, curStackFrame);
                 registerPool.deallocUse(gepInst);
                 Register r = registerPool.allocDef(gepInst, curStackFrame);
-                mipsCode.addMIPSInst(new ADDIU(r, pointer, imm * 4));
+                if (r != null) {
+                    mipsCode.addMIPSInst(new ADDIU(r, pointer, imm * 4));
+                } else {
+                    Register temp = registerPool.allocTemp(curStackFrame);
+                    mipsCode.addMIPSInst(new ADDIU(temp, pointer, imm * 4));
+                    mipsCode.addMIPSInst(new SW(temp, Register.SP, curStackFrame.getOffset((Slot) gepInst.result)));
+                }
             }
         }
     }
@@ -398,7 +477,7 @@ public class Translator {
      * @param callInst call指令
      * 【调用者动作】：
      *          1. 保存ra寄存器
-     *          2. 将后续需要用到的寄存器值存入栈中
+     *          2. 将后续需要用到的保留寄存器值存入栈中
      *          3. 将参数压栈、[如果a0-a3有冲突（需要传递且后续要用到），则需要保存并恢复]
      *          4. 更改sp寄存器的值
      *          5. 使用jal指令
@@ -410,41 +489,46 @@ public class Translator {
      *          1. 执行函数逻辑，若使用参数则取寄存器值或栈上值
      *          2. 执行到ret指令，返回值存入v0（若有）
      *          3. 使用jr ra返回
+     *
+     *                 【12.12bug】参数压栈后，再对a0-a3赋值，则可能会出现压栈完又溢出寄存器而导致错误
      */
     private void translateCallInst(MIPSCode mipsCode, CallInst callInst) {
         // 函数调用
-        int downSize = 0;     // 记录栈帧增加的大小，用于最后恢复栈帧大小
         int formerStackSize = curStackFrame.getSize();    // 记录调用前栈帧大小
         // 保存ra寄存器
-        downSize += 4;
-        mipsCode.addMIPSInst(new SW(Register.RA, Register.SP, -(formerStackSize + downSize)));
+        curStackFrame.allocStackSize(4);
+        mipsCode.addMIPSInst(new SW(Register.RA, Register.SP, -curStackFrame.getSize()));
         curStackFrame.saveRegister(Register.RA);
 
-        // 保存现场，即后续需要用到的寄存器值
-        Map<Slot, Register> allocated = registerPool.getAllocated();
-        for (Map.Entry<Slot, Register> entry: allocated.entrySet()) {
+        // 保存现场，先保留必须的【保留】寄存器值
+        for (Map.Entry<Slot, Register> entry: registerPool.globalAllocation.entrySet()) {
+            curStackFrame.allocStackSize(4);
+            mipsCode.addMIPSInst(new SW(entry.getValue(), Register.SP, -curStackFrame.getSize()));
+            curStackFrame.saveRegister(entry.getValue());
+        }
+        // 后续可能用到的临时寄存器值
+        for (Map.Entry<Slot, Register> entry: registerPool.getAllocated().entrySet()) {
             // 还未deallocUse，无此判断条件可能多余保存后面不会用到的参数
             if (callInst.liveOut.contains(entry.getKey())) {
-                downSize += 4;
-                mipsCode.addMIPSInst(new SW(entry.getValue(), Register.SP, -(formerStackSize + downSize)));
+                curStackFrame.allocStackSize(4);
+                mipsCode.addMIPSInst(new SW(entry.getValue(), Register.SP, -curStackFrame.getSize()));
                 curStackFrame.saveRegister(entry.getValue());
             }
         }
-
+        // 【注意】因为被调用者需要靠偏移取参数，所以此时只能分配参数的栈空间，应该禁止alloc寄存器防止溢出。
+        //  因此提前alloc一个临时寄存器，专门用于存放参数值
+        Register temp = registerPool.allocTemp(curStackFrame);
         // 传递参数
         List<Function.Param> params = callInst.params;
         for (int i = params.size() - 1; i >= 4; i--) {
             // 若超过4个参数，将多余的参数存入栈中
-            Register paramValue;
             if (params.get(i).value instanceof Immediate imm) {
-                paramValue = registerPool.allocateTemp(curStackFrame);
-                mipsCode.addMIPSInst(new LI(paramValue, imm.immediate));
+                mipsCode.addMIPSInst(new LI(temp, imm.immediate));
             } else {
-                paramValue = registerPool.find((Slot) params.get(i).value, curStackFrame);
+                temp = registerPool.findParam((Slot) params.get(i).value, temp, curStackFrame);
             }
-            downSize += 4;
-            mipsCode.addMIPSInst(new SW(paramValue, Register.SP, -(formerStackSize + downSize)));
-            curStackFrame.addArgNum();
+            curStackFrame.allocStackSize(4);
+            mipsCode.addMIPSInst(new SW(temp, Register.SP, -curStackFrame.getSize()));
         }
         for (int i = 3; i >= 0; i--) {
             Register a = switch (i) {
@@ -462,17 +546,16 @@ public class Translator {
                 mipsCode.addMIPSInst(new SW(a, Register.SP, i * 4));
             }
             // 前4个参数存入寄存器
-            downSize += 4;
+            curStackFrame.allocStackSize(4);
             if (i < params.size()) {
                 if (params.get(i).value instanceof Immediate imm) {
                     mipsCode.addMIPSInst(new LI(a, imm.immediate));
                 } else {
-                    Register r = registerPool.find((Slot) params.get(i).value, curStackFrame);
-                    mipsCode.addMIPSInst(new MOVE(a, r));
+                    temp = registerPool.findParam((Slot) params.get(i).value, temp, curStackFrame);
+                    mipsCode.addMIPSInst(new MOVE(a, temp));
                 }
             }
             // 用寄存器传参，但是栈空间仍要保留
-            curStackFrame.addArgNum();
         }
         registerPool.deallocUse(callInst);      // 只有在find完后才能deallocUse
         // 调用函数，生成MIPS指令
@@ -484,8 +567,7 @@ public class Translator {
         for (int i = 0; i < savedRegisters.size(); i++) {
             mipsCode.addMIPSInst(new LW(savedRegisters.get(i), Register.SP, -(formerStackSize + (i + 1) * 4)));
         }
-        curStackFrame.restore(downSize);    // 恢复栈帧，包括大小和保存的寄存器
-        assert curStackFrame.getSize() == formerStackSize;    // 恢复栈帧大小
+        curStackFrame.restore(formerStackSize);    // 恢复栈帧，包括大小和保存的寄存器
         // 恢复a0-a3寄存器
         for (int i = 3; i >= 0; i--) {
             Register a = switch (i) {
@@ -505,7 +587,13 @@ public class Translator {
         // 从v0寄存器取返回值（若有）
         if (callInst.result != null) {
             Register r = registerPool.allocDef(callInst, curStackFrame);
-            mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+            if (r != null) {
+                mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+            } else {
+                Register t = registerPool.allocTemp(curStackFrame);
+                mipsCode.addMIPSInst(new MOVE(t, Register.V0));
+                mipsCode.addMIPSInst(new SW(t, Register.SP, curStackFrame.getOffset((Slot)callInst.result)));
+            }
         }
     }
 
@@ -533,7 +621,7 @@ public class Translator {
     }
     private Register saveA0(MIPSCode mipsCode) {
         // 先保存a0寄存器的值
-        Register temp = registerPool.allocateTemp(curStackFrame);
+        Register temp = registerPool.allocTemp(curStackFrame);
         mipsCode.addMIPSInst(new MOVE(temp, Register.A0));
         return temp;
     }
@@ -609,7 +697,13 @@ public class Translator {
         mipsCode.addMIPSInst(new SYSCALL());   // 系统调用
         registerPool.deallocUse(callInst);
         Register r = registerPool.allocDef(callInst, curStackFrame);
-        mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+        if (r != null) {
+            mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+        } else {
+            r = registerPool.allocTemp(curStackFrame);
+            mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+            mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) callInst.result)));
+        }
     }
 
     private void translateGetChar(MIPSCode mipsCode, CallInst callInst) {
@@ -617,6 +711,12 @@ public class Translator {
         mipsCode.addMIPSInst(new SYSCALL());   // 系统调用
         registerPool.deallocUse(callInst);
         Register r = registerPool.allocDef(callInst, curStackFrame);
-        mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+        if (r != null) {
+            mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+        } else {
+            r = registerPool.allocTemp(curStackFrame);
+            mipsCode.addMIPSInst(new MOVE(r, Register.V0));
+            mipsCode.addMIPSInst(new SW(r, Register.SP, curStackFrame.getOffset((Slot) callInst.result)));
+        }
     }
 }

@@ -1,23 +1,420 @@
 .data
-	s1: .word 104, 101, 108, 108, 111, 34, 0, 0, 0, 0
+	.str.0: .asciiz "a0="
+	.str.1: .asciiz "\n"
+	.str.2: .asciiz "a1="
+	.str.3: .asciiz "\n"
+	.str.4: .asciiz "a2="
+	.str.5: .asciiz "\n"
+	.str.6: .asciiz "a3="
+	.str.7: .asciiz "\n"
+	.str.8: .asciiz "a4="
+	.str.9: .asciiz "\n"
+	.str.10: .asciiz "a5="
+	.str.11: .asciiz "\n"
+	.str.12: .asciiz "a6="
+	.str.13: .asciiz "\n"
+	.str.14: .asciiz "a7="
+	.str.15: .asciiz "\n"
+	.str.16: .asciiz "a8="
+	.str.17: .asciiz "\n"
+	.str.18: .asciiz "a9="
+	.str.19: .asciiz "\n"
+	.str.20: .asciiz "a10="
+	.str.21: .asciiz "\n"
+	.str.22: .asciiz "a11="
+	.str.23: .asciiz "\n"
+	.str.24: .asciiz "a12="
+	.str.25: .asciiz "\n"
+	.str.26: .asciiz "a13="
+	.str.27: .asciiz "\n"
+	.str.28: .asciiz "a14="
+	.str.29: .asciiz "\n"
+	.str.30: .asciiz "result="
+	.str.31: .asciiz "\n"
 .text
 main:
 main_label_0:
-	addi $t0, $sp, -40	# %1 = alloca [10 x i8]				;decl var array: s2
-	addi $t1, $t0, 0
-	li $t2, 119
-	sw $t2, 0($t1)
-	addi $t1, $t0, 4
-	li $t2, 111
-	sw $t2, 0($t1)
-	addi $t1, $t0, 8
-	li $t2, 114
-	sw $t2, 0($t1)
-	addi $t1, $t0, 12
-	li $t2, 108
-	sw $t2, 0($t1)
-	addi $t0, $t0, 16
-	li $t1, 100
+	addiu $t0, $sp, -4	# %1 = alloca i32				;decl var: a0
+	li $t1, 0
 	sw $t1, 0($t0)
+	addiu $t1, $sp, -8	# %2 = alloca i32				;decl var: a1
+	li $t2, 1
+	sw $t2, 0($t1)
+	addiu $t2, $sp, -12	# %3 = alloca i32				;decl var: a2
+	li $t3, 2
+	sw $t3, 0($t2)
+	addiu $t3, $sp, -16	# %4 = alloca i32				;decl var: a3
+	li $t4, 3
+	sw $t4, 0($t3)
+	addiu $t4, $sp, -20	# %5 = alloca i32				;decl var: a4
+	li $t5, 4
+	sw $t5, 0($t4)
+	addiu $t5, $sp, -24	# %6 = alloca i32				;decl var: a5
+	li $t6, 5
+	sw $t6, 0($t5)
+	addiu $t6, $sp, -28	# %7 = alloca i32				;decl var: a6
+	li $t7, 6
+	sw $t7, 0($t6)
+	addiu $t7, $sp, -32	# %8 = alloca i32				;decl var: a7
+	li $t8, 7
+	sw $t8, 0($t7)
+	addiu $t8, $sp, -36	# %9 = alloca i32				;decl var: a8
+	li $t9, 8
+	sw $t9, 0($t8)
+	addiu $t9, $sp, -40	# %10 = alloca i32				;decl var: a9
+	sw $t0, -44($sp)	# 	spill reg of %1
+	li $t0, 9
+	sw $t0, 0($t9)
+	addiu $t0, $sp, -48	# %11 = alloca i32				;decl var: a10
+	sw $t1, -52($sp)	# 	spill reg of %2
+	li $t1, 10
+	sw $t1, 0($t0)
+	addiu $t1, $sp, -56	# %12 = alloca i32				;decl var: a11
+	sw $t2, -60($sp)	# 	spill reg of %3
+	li $t2, 11
+	sw $t2, 0($t1)
+	addiu $t2, $sp, -64	# %13 = alloca i32				;decl var: a12
+	sw $t3, -68($sp)	# 	spill reg of %4
+	li $t3, 12
+	sw $t3, 0($t2)
+	addiu $t3, $sp, -72	# %14 = alloca i32				;decl var: a13
+	sw $t4, -76($sp)	# 	spill reg of %5
+	li $t4, 13
+	sw $t4, 0($t3)
+	addiu $t4, $sp, -80	# %15 = alloca i32				;decl var: a14
+	sw $t5, -84($sp)	# 	spill reg of %6
+	li $t5, 14
+	sw $t5, 0($t4)
+	addiu $t5, $sp, -88	# %16 = alloca i32				;decl var: result
+	sw $t6, -92($sp)	# 	spill reg of %7
+	lw $t6, -44($sp)	# 	 load slot %1
+	lw $t6, 0($t6)
+	sw $t7, -96($sp)	# 	spill reg of %8
+	lw $t7, -52($sp)	# 	 load slot %2
+	lw $t7, 0($t7)
+	sw $t8, -100($sp)	# 	spill reg of %9
+	lw $t8, -60($sp)	# 	 load slot %3
+	lw $t8, 0($t8)
+	sw $t9, -104($sp)	# 	spill reg of %10
+	lw $t9, -68($sp)	# 	 load slot %4
+	lw $t9, 0($t9)
+	sw $t0, -108($sp)	# 	spill reg of %11
+	lw $t0, -76($sp)	# 	 load slot %5
+	lw $t0, 0($t0)
+	sw $t1, -112($sp)	# 	spill reg of %12
+	lw $t1, -84($sp)	# 	 load slot %6
+	lw $t1, 0($t1)
+	sw $t2, -116($sp)	# 	spill reg of %13
+	lw $t2, -92($sp)	# 	 load slot %7
+	lw $t2, 0($t2)
+	sw $t3, -120($sp)	# 	spill reg of %14
+	lw $t3, -96($sp)	# 	 load slot %8
+	lw $t3, 0($t3)
+	sw $t4, -124($sp)	# 	spill reg of %15
+	lw $t4, -100($sp)	# 	 load slot %9
+	lw $t4, 0($t4)
+	sw $t5, -128($sp)	# 	spill reg of %16
+	lw $t5, -104($sp)	# 	 load slot %10
+	lw $t5, 0($t5)
+	sw $t6, -132($sp)	# 	spill reg of %17
+	lw $t6, -108($sp)	# 	 load slot %11
+	lw $t6, 0($t6)
+	sw $t7, -136($sp)	# 	spill reg of %18
+	lw $t7, -112($sp)	# 	 load slot %12
+	lw $t7, 0($t7)
+	sw $t8, -140($sp)	# 	spill reg of %19
+	lw $t8, -116($sp)	# 	 load slot %13
+	lw $t8, 0($t8)
+	sw $t9, -144($sp)	# 	spill reg of %20
+	lw $t9, -120($sp)	# 	 load slot %14
+	lw $t9, 0($t9)
+	sw $t0, -148($sp)	# 	spill reg of %21
+	lw $t0, -124($sp)	# 	 load slot %15
+	lw $t0, 0($t0)
+	sw $ra, -152($sp)
+	sw $t1, -156($sp)	# 	spill reg of %22
+	sw $t0, -160($sp)
+	sw $t9, -164($sp)
+	sw $t8, -168($sp)
+	sw $t7, -172($sp)
+	sw $t6, -176($sp)
+	sw $t5, -180($sp)
+	sw $t4, -184($sp)
+	sw $t3, -188($sp)
+	sw $t2, -192($sp)
+	lw $t2, -156($sp)	# 	 load param %22
+	sw $t2, -196($sp)
+	lw $t2, -148($sp)	# 	 load param %21
+	sw $t2, -200($sp)
+	lw $t2, -144($sp)	# 	 load param %20
+	move $a3, $t2
+	lw $t2, -140($sp)	# 	 load param %19
+	move $a2, $t2
+	lw $t2, -136($sp)	# 	 load param %18
+	move $a1, $t2
+	lw $t2, -132($sp)	# 	 load param %17
+	move $a0, $t2
+	addiu $sp, $sp, -216
+	jal sum
+	addiu $sp, $sp, 216
+	lw $ra, -152($sp)
+	move $t0, $v0
+	lw $t1, -128($sp)	# 	 load slot %16
+	sw $t0, 0($t1)
+	li $v0, 4
+	la $a0, .str.30
+	syscall
+	lw $t0, -128($sp)	# 	 load slot %16
+	lw $t0, 0($t0)
+	li $v0, 1
+	move $a0, $t0
+	syscall
+	li $v0, 4
+	la $a0, .str.31
+	syscall
 	li $v0, 10
 	syscall
+sum:
+sum_label_15:
+	addiu $t0, $sp, -4	# %16 = alloca i32				;alloc addr for fParam a0
+	sw $a0, 0($t0)
+	addiu $t1, $sp, -8	# %17 = alloca i32				;alloc addr for fParam a1
+	sw $a1, 0($t1)
+	addiu $t2, $sp, -12	# %18 = alloca i32				;alloc addr for fParam a2
+	sw $a2, 0($t2)
+	addiu $t3, $sp, -16	# %19 = alloca i32				;alloc addr for fParam a3
+	sw $a3, 0($t3)
+	addiu $t4, $sp, -20	# %20 = alloca i32				;alloc addr for fParam a4
+	lw $t5, 16($sp)	# 	 load slot %4
+	sw $t5, 0($t4)
+	addiu $t5, $sp, -24	# %21 = alloca i32				;alloc addr for fParam a5
+	lw $t6, 20($sp)	# 	 load slot %5
+	sw $t6, 0($t5)
+	addiu $t6, $sp, -28	# %22 = alloca i32				;alloc addr for fParam a6
+	lw $t7, 24($sp)	# 	 load slot %6
+	sw $t7, 0($t6)
+	addiu $t7, $sp, -32	# %23 = alloca i32				;alloc addr for fParam a7
+	lw $t8, 28($sp)	# 	 load slot %7
+	sw $t8, 0($t7)
+	addiu $t8, $sp, -36	# %24 = alloca i32				;alloc addr for fParam a8
+	lw $t9, 32($sp)	# 	 load slot %8
+	sw $t9, 0($t8)
+	addiu $t9, $sp, -40	# %25 = alloca i32				;alloc addr for fParam a9
+	sw $t0, -44($sp)	# 	spill reg of %16
+	lw $t0, 36($sp)	# 	 load slot %9
+	sw $t0, 0($t9)
+	addiu $t0, $sp, -48	# %26 = alloca i32				;alloc addr for fParam a10
+	sw $t1, -52($sp)	# 	spill reg of %17
+	lw $t1, 40($sp)	# 	 load slot %10
+	sw $t1, 0($t0)
+	addiu $t1, $sp, -56	# %27 = alloca i32				;alloc addr for fParam a11
+	sw $t2, -60($sp)	# 	spill reg of %18
+	lw $t2, 44($sp)	# 	 load slot %11
+	sw $t2, 0($t1)
+	addiu $t2, $sp, -64	# %28 = alloca i32				;alloc addr for fParam a12
+	sw $t3, -68($sp)	# 	spill reg of %19
+	lw $t3, 48($sp)	# 	 load slot %12
+	sw $t3, 0($t2)
+	addiu $t3, $sp, -72	# %29 = alloca i32				;alloc addr for fParam a13
+	sw $t4, -76($sp)	# 	spill reg of %20
+	lw $t4, 52($sp)	# 	 load slot %13
+	sw $t4, 0($t3)
+	addiu $t4, $sp, -80	# %30 = alloca i32				;alloc addr for fParam a14
+	sw $t5, -84($sp)	# 	spill reg of %21
+	lw $t5, 56($sp)	# 	 load slot %14
+	sw $t5, 0($t4)
+	li $v0, 4
+	la $a0, .str.0
+	syscall
+	lw $t5, -44($sp)	# 	 load slot %16
+	lw $t5, 0($t5)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.1
+	syscall
+	li $v0, 4
+	la $a0, .str.2
+	syscall
+	lw $t5, -52($sp)	# 	 load slot %17
+	lw $t5, 0($t5)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.3
+	syscall
+	li $v0, 4
+	la $a0, .str.4
+	syscall
+	lw $t5, -60($sp)	# 	 load slot %18
+	lw $t5, 0($t5)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.5
+	syscall
+	li $v0, 4
+	la $a0, .str.6
+	syscall
+	lw $t5, -68($sp)	# 	 load slot %19
+	lw $t5, 0($t5)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.7
+	syscall
+	li $v0, 4
+	la $a0, .str.8
+	syscall
+	lw $t5, -76($sp)	# 	 load slot %20
+	lw $t5, 0($t5)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.9
+	syscall
+	li $v0, 4
+	la $a0, .str.10
+	syscall
+	lw $t5, -84($sp)	# 	 load slot %21
+	lw $t5, 0($t5)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.11
+	syscall
+	li $v0, 4
+	la $a0, .str.12
+	syscall
+	lw $t5, 0($t6)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.13
+	syscall
+	li $v0, 4
+	la $a0, .str.14
+	syscall
+	lw $t5, 0($t7)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.15
+	syscall
+	li $v0, 4
+	la $a0, .str.16
+	syscall
+	lw $t5, 0($t8)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.17
+	syscall
+	li $v0, 4
+	la $a0, .str.18
+	syscall
+	lw $t5, 0($t9)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.19
+	syscall
+	li $v0, 4
+	la $a0, .str.20
+	syscall
+	lw $t5, 0($t0)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.21
+	syscall
+	li $v0, 4
+	la $a0, .str.22
+	syscall
+	lw $t5, 0($t1)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.23
+	syscall
+	li $v0, 4
+	la $a0, .str.24
+	syscall
+	lw $t5, 0($t2)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.25
+	syscall
+	li $v0, 4
+	la $a0, .str.26
+	syscall
+	lw $t5, 0($t3)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.27
+	syscall
+	li $v0, 4
+	la $a0, .str.28
+	syscall
+	lw $t5, 0($t4)
+	li $v0, 1
+	move $a0, $t5
+	syscall
+	li $v0, 4
+	la $a0, .str.29
+	syscall
+	lw $t5, -44($sp)	# 	 load slot %16
+	lw $t5, 0($t5)
+	sw $t6, -88($sp)	# 	spill reg of %22
+	lw $t6, -52($sp)	# 	 load slot %17
+	lw $t6, 0($t6)
+	addu $t5, $t5, $t6
+	lw $t6, -60($sp)	# 	 load slot %18
+	lw $t6, 0($t6)
+	addu $t5, $t5, $t6
+	lw $t6, -68($sp)	# 	 load slot %19
+	lw $t6, 0($t6)
+	addu $t5, $t5, $t6
+	lw $t6, -76($sp)	# 	 load slot %20
+	lw $t6, 0($t6)
+	addu $t5, $t5, $t6
+	lw $t6, -84($sp)	# 	 load slot %21
+	lw $t6, 0($t6)
+	addu $t5, $t5, $t6
+	lw $t6, -88($sp)	# 	 load slot %22
+	lw $t6, 0($t6)
+	addu $t5, $t5, $t6
+	lw $t6, 0($t7)
+	addu $t5, $t5, $t6
+	lw $t6, 0($t8)
+	addu $t5, $t5, $t6
+	lw $t6, 0($t9)
+	addu $t5, $t5, $t6
+	lw $t0, 0($t0)
+	addu $t0, $t5, $t0
+	lw $t1, 0($t1)
+	addu $t0, $t0, $t1
+	lw $t1, 0($t2)
+	addu $t0, $t0, $t1
+	lw $t1, 0($t3)
+	addu $t0, $t0, $t1
+	lw $t1, 0($t4)
+	addu $t0, $t0, $t1
+	move $v0, $t0
+	jr $ra

@@ -2,7 +2,7 @@ package backend;
 
 import backend.instructions.MemInst.LW;
 import backend.instructions.MemInst.SW;
-import midend.llvm.BasicBlock;
+import backend.instructions.RRInst.MOVE;
 import midend.llvm.Function;
 import midend.llvm.Instruction;
 import midend.llvm.Slot;
@@ -13,24 +13,25 @@ import java.util.*;
 /**
  * 寄存器池，用于分配和回收寄存器
  * 维护一个allocated表，记录虚拟寄存器slot对应的物理寄存器
+ *【对于跨块活跃变量，分配全局寄存器s0-s7，使用图着色算法】
+ *【对于非跨块活跃变量，分配临时寄存器t0-t9，使用寄存器池FIFO算法】
  */
 public class RegisterPool {
-    // 使用FIFO算法分配寄存器
+    // 使用FIFO算法分配临时寄存器
     public static final List<Register> tempRegisters = List.of(Register.T0, Register.T1, Register.T2, Register.T3, Register.T4, Register.T5, Register.T6, Register.T7, Register.T8, Register.T9);
     public static final List<Register> savedRegisters = List.of(Register.S0, Register.S1, Register.S2, Register.S3, Register.S4, Register.S5, Register.S6, Register.S7);
     private final MIPSCode mipsCode;
     private final Function function;    // 一个函数由一个RegisterPool管理
-    private final List<BasicBlock> notTranslated;  // 未翻译的基本块
     public RegisterPool(MIPSCode mipsCode, Function function) {
         this.mipsCode = mipsCode;
         this.function = function;
-        notTranslated = new ArrayList<>(function.basicBlocks);
     }
-    // 记录虚拟寄存器slot对应的物理寄存器
+    // 记录虚拟寄存器slot对应的物理【临时寄存器】
     private final Map<Slot, Register> allocated = new HashMap<>();
+    // 记录全局寄存器的分配情况
+    public final Map <Slot, Register> globalAllocation = new HashMap<>();
     // 用于实现FIFO算法溢出寄存器
     private final LinkedList<Register> tempQueue = new LinkedList<>();
-    private final LinkedList<Register> savedQueue = new LinkedList<>();
     public Map<Slot, Register> getAllocated() {
         return allocated;
     }
@@ -38,15 +39,45 @@ public class RegisterPool {
     // 查找slot对应的寄存器
     public Register find(Slot slot, StackFrame curStackFrame) {
         if (allocated.containsKey(slot)) {
-            return allocated.get(slot);
+            return allocated.get(slot); // 临时寄存器
+        } else if (globalAllocation.containsKey(slot)) {
+            return globalAllocation.get(slot); // 全局寄存器
         } else {
-            // 判断是否为局部变量
+            // 判断是否在栈上
             if (curStackFrame.isLocal(slot) ||
                     slot.slotId >= 4) {
                 // 从栈上加载局部变量（富偏移），或者大于4个的函数参数（非负偏移）
-                Register register = allocate(slot, curStackFrame);
-                mipsCode.addMIPSInst(new LW(register, Register.SP, curStackFrame.getOffset(slot)));
+                Register register = allocTemp(curStackFrame);
+                mipsCode.addMIPSInst(new LW(register, Register.SP, curStackFrame.getOffset(slot)).
+                        setComment("\t load slot " + slot.toText()));
                 return register;
+            } else {
+                // 函数参数a0-a3
+                return switch (slot.slotId) {
+                    case 0 -> Register.A0;
+                    case 1 -> Register.A1;
+                    case 2 -> Register.A2;
+                    case 3 -> Register.A3;
+                    default -> null;
+                };
+            }
+        }
+    }
+
+    // 用于传参时，事先分配好temp，禁止alloc寄存器以避免溢出
+    public Register findParam(Slot slot, Register temp, StackFrame curStackFrame) {
+        if (allocated.containsKey(slot)) {
+            return allocated.get(slot); // 临时寄存器
+        } else if (globalAllocation.containsKey(slot)) {
+            return globalAllocation.get(slot); // 全局寄存器
+        } else {
+            // 判断是否在栈上
+            if (curStackFrame.isLocal(slot) ||
+                    slot.slotId >= 4) {
+                // 从栈上加载局部变量（富偏移），或者大于4个的函数参数（非负偏移）
+                mipsCode.addMIPSInst(new LW(temp, Register.SP, curStackFrame.getOffset(slot)).
+                        setComment("\t load param " + slot.toText()));
+                return temp;
             } else {
                 // 函数参数a0-a3
                 return switch (slot.slotId) {
@@ -73,64 +104,41 @@ public class RegisterPool {
             if (!instruction.liveOut.contains(entry.getKey()) && !function.interBlockLive.contains(entry.getKey())) {
                 // 在指令层面，不能释放跨块活跃变量的寄存器
                 tempQueue.remove(entry.getValue());
-                savedQueue.remove(entry.getValue());
                 iterator.remove();
             }
         }
     }
-
-    // 释放保留寄存器
-    public void deallocUse(BasicBlock block) {
-        notTranslated.remove(block);
-        // 若对于所有未翻译的基本块，变量都不再活跃，则释放保留寄存器
-        for (Slot slot :function.interBlockLive) {
-            boolean active = false;
-            for (BasicBlock notTrans: notTranslated) {
-                if (notTrans.liveIn.contains(slot)) {
-                    active = true;
-                    break;
-                }
-            }
-            if (!active) {
-                tempQueue.remove(allocated.get(slot));
-                savedQueue.remove(allocated.get(slot));
-                allocated.remove(slot);
-            }
-        }
-    }
-
     /**
      * 分配指令instruction的def需要用到的寄存器
      * @param instruction 需要处理的指令
      * @param curStackFrame 当前的栈帧，用于溢出时分配栈空间
-     * @return 分配的临时寄存器（若不需要分配，则返回null）
+     * @return 分配的临时/全局寄存器（不需要分配的溢出跨块变量，则返回null）
      */
     public Register allocDef(Instruction instruction, StackFrame curStackFrame) {
-        // 有定义的寄存器，分配一个临时寄存器
         Slot slot = instruction.def.iterator().next();
-        return allocate(slot, curStackFrame);
+        if (function.interBlockLive.contains(slot)) {
+            // 跨块活跃变量，分配全局寄存器
+            // 已有分配的全局寄存器则分配，【否则返回null】
+            return globalAllocation.getOrDefault(slot, null);
+        }
+        // 非跨块活跃变量，分配临时寄存器
+        return bindAllocTemp(slot, curStackFrame);
     }
 
     // TODO: 分配寄存器--优化
 
     /**
-     * 私有方法，遍历从 registers 中分配一个寄存器
+     * 分配临时寄存器并与Slot【绑定】
      * @param slot 需要分配的slot
      * @param curStackFrame 当前的栈帧
      * @return 分配的寄存器
      */
-    private Register allocate(Slot slot, StackFrame curStackFrame) {
+    private Register bindAllocTemp(Slot slot, StackFrame curStackFrame) {
         // 如果是跨块活跃变量，分配保留寄存器，否则分配临时寄存器
-        List<Register> registers =
-            function.interBlockLive.contains(slot) ? savedRegisters : tempRegisters;
-        for (Register r: registers) {
+        for (Register r: tempRegisters) {
             if (!allocated.containsValue(r)) {
                 // 若空闲，即找到
-                if (registers == tempRegisters) {
-                    tempQueue.addLast(r);
-                } else {
-                    savedQueue.addLast(r);
-                }
+                tempQueue.addLast(r);
                 allocated.put(slot, r);
                 return r;
             }
@@ -139,16 +147,22 @@ public class RegisterPool {
         return spill(slot, curStackFrame);
     }
 
-    // 分配一个临时寄存器，不存放在allocated中，不保存其中的值
-    // 用于翻译LLVM IR的一条指令时，需要一个临时寄存器
-    // 若在一条指令中还分配了其他寄存器，需要先分配其他需要记录的寄存器，最后分配不记录的寄存器
-    public Register allocateTemp(StackFrame curStackFrame) {
+    private final Set<Register> temp = new HashSet<>();
+    // 分配一个临时寄存器，【不与任何slot绑定】【不存放在allocated中】
+    // 用于翻译LLVM IR的一条指令时，需要一个或几个临时寄存器
+    // 若在一条指令中还分配了其他寄存器，【需要先分配其他需要记录的寄存器】，最后分配不记录的寄存器
+    public Register allocTemp(StackFrame curStackFrame) {
         for (Register r: tempRegisters) {
-            if (!allocated.containsValue(r)) {
+            if (!allocated.containsValue(r) && !temp.contains(r)) {
+                temp.add(r);
                 return r;
             }
         }
         return spill(null, curStackFrame);
+    }
+    // 每条指令翻译完后，清空temp
+    public void flushTemp() {
+        temp.clear();
     }
 
     /**
@@ -158,12 +172,7 @@ public class RegisterPool {
      */
     private Register spill(Slot slot, StackFrame curStackFrame) {
         // FIFO算法，取出最早分配的寄存器
-        Register spillRegister;
-        if (slot == null || !function.interBlockLive.contains(slot)) {
-            spillRegister = tempQueue.removeFirst();
-        } else {
-            spillRegister = savedQueue.removeFirst();
-        }
+        Register spillRegister = tempQueue.removeFirst();
         Slot spillSlot = null;
         for (Map.Entry<Slot, Register> entry: allocated.entrySet()) {
             if (entry.getValue() == spillRegister) {
@@ -172,15 +181,11 @@ public class RegisterPool {
         }
         // 将寄存器的值存到栈上
         curStackFrame.recordLocal(spillSlot, 4);
-        mipsCode.addMIPSInst(new SW(spillRegister, Register.SP, -curStackFrame.getSize()).setComment("\tspill reg"));
+        mipsCode.addMIPSInst(new SW(spillRegister, Register.SP, -curStackFrame.getSize()).setComment("\tspill reg of " + spillSlot.toText()));
         // 移除allocated中的记录
         allocated.remove(spillSlot);
         if (slot != null) {
-            if (function.interBlockLive.contains(slot)) {
-                savedQueue.addLast(spillRegister);
-            } else {
-                tempQueue.addLast(spillRegister);
-            }
+            tempQueue.addLast(spillRegister);
             allocated.put(slot, spillRegister);
         }
         return spillRegister;

@@ -1,6 +1,42 @@
-char s1[10] = "hello";
+
+int sum(int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13, int a14) {
+    printf("a0=%d\n", a0);
+    printf("a1=%d\n", a1);
+    printf("a2=%d\n", a2);
+    printf("a3=%d\n", a3);
+    printf("a4=%d\n", a4);
+    printf("a5=%d\n", a5);
+    printf("a6=%d\n", a6);
+    printf("a7=%d\n", a7);
+    printf("a8=%d\n", a8);
+    printf("a9=%d\n", a9);
+    printf("a10=%d\n", a10);
+    printf("a11=%d\n", a11);
+    printf("a12=%d\n", a12);
+    printf("a13=%d\n", a13);
+    printf("a14=%d\n", a14);
+
+    return a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12 + a13 + a14;
+}
 
 int main() {
-    char s2[10] = "world";
+    int a0 = 0;
+    int a1 = 1;
+    int a2 = 2;
+    int a3 = 3;
+    int a4 = 4;
+    int a5 = 5;
+    int a6 = 6;
+    int a7 = 7;
+    int a8 = 8;
+    int a9 = 9;
+    int a10 = 10;
+    int a11 = 11;
+    int a12 = 12;
+    int a13 = 13;
+    int a14 = 14;
+    int result = sum(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
+    printf("result=%d\n", result); // expect 78
+
     return 0;
 }

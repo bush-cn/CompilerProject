@@ -78,7 +78,7 @@ public class Function extends GlobalValue {
 
     public static class Param {
         public Type type;
-        public Value value;
+        public Value value; // 形参，因此都是Slot
 
         public Param(Type type, Value value) {
             this.type = type;

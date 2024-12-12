@@ -431,6 +431,10 @@ define dso_local i32 @fun2(i32 %0) {
 
 ## 6.2 编码后的设计
 
+将add、addi、sub、subi指令改为addu、addiu、subu、subiu后，testcase5通过，testcase6 oce、testcase8 wa：
+
+<img src="assets/image-20241210162013038.png" alt="image-20241210162013038" style="zoom:50%;" />
+
 
 
 # 代码优化设计
