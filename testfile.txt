@@ -38,5 +38,24 @@ int main() {
     int result = sum(a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
     printf("result=%d\n", result); // expect 78
 
+
+    int a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9, j = 10;
+
+    int temp1 = a + b;  // 3
+    int temp2 = c + d;  // 7
+    int temp3 = e + f;  // 11
+
+    if (temp1 > temp2) {
+        result = temp1 + temp2 + temp3 + g;
+        printf("result: %d\n", result);
+    } else {
+        result = temp1 - temp2 + temp3 + h;
+        printf("result: %d\n", result);     // expect 15
+    }
+
+
+    result = result + a + b + c + d + e + f + g + h + i + j;
+    printf("result: %d\n", result);     // expect 70
+
     return 0;
 }

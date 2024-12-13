@@ -494,6 +494,10 @@ public class Translator {
      */
     private void translateCallInst(MIPSCode mipsCode, CallInst callInst) {
         // 函数调用
+        // 【注意】因为被调用者需要靠偏移取参数，所以此时只能分配参数的栈空间，应该禁止alloc寄存器防止溢出。
+        //  因此提前alloc一个临时寄存器，专门用于存放参数值
+        Register temp = registerPool.allocTemp(curStackFrame);
+
         int formerStackSize = curStackFrame.getSize();    // 记录调用前栈帧大小
         // 保存ra寄存器
         curStackFrame.allocStackSize(4);
@@ -515,9 +519,6 @@ public class Translator {
                 curStackFrame.saveRegister(entry.getValue());
             }
         }
-        // 【注意】因为被调用者需要靠偏移取参数，所以此时只能分配参数的栈空间，应该禁止alloc寄存器防止溢出。
-        //  因此提前alloc一个临时寄存器，专门用于存放参数值
-        Register temp = registerPool.allocTemp(curStackFrame);
         // 传递参数
         List<Function.Param> params = callInst.params;
         for (int i = params.size() - 1; i >= 4; i--) {

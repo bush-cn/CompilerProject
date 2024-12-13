@@ -161,6 +161,12 @@ define dso_local i32 @sum(i32 %0, i32 %1, i32 %2, i32 %3, i32 %4, i32 %5, i32 %6
 
 @.str.30 = private unnamed_addr constant [8 x i8] c"result=\00", align 1
 @.str.31 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@.str.32 = private unnamed_addr constant [9 x i8] c"result: \00", align 1
+@.str.33 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@.str.34 = private unnamed_addr constant [9 x i8] c"result: \00", align 1
+@.str.35 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@.str.36 = private unnamed_addr constant [9 x i8] c"result: \00", align 1
+@.str.37 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
 define dso_local i32 @main() {
 0:								 ; preds =
@@ -216,6 +222,102 @@ define dso_local i32 @main() {
 	%33 = load i32, i32* %16		;load value of result
 	call void @putint(i32 %33)
 	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.31, i64 0, i64 0))
+	%34 = alloca i32				;decl var: a
+	store i32 1, i32* %34			;init var: a
+	%35 = alloca i32				;decl var: b
+	store i32 2, i32* %35			;init var: b
+	%36 = alloca i32				;decl var: c
+	store i32 3, i32* %36			;init var: c
+	%37 = alloca i32				;decl var: d
+	store i32 4, i32* %37			;init var: d
+	%38 = alloca i32				;decl var: e
+	store i32 5, i32* %38			;init var: e
+	%39 = alloca i32				;decl var: f
+	store i32 6, i32* %39			;init var: f
+	%40 = alloca i32				;decl var: g
+	store i32 7, i32* %40			;init var: g
+	%41 = alloca i32				;decl var: h
+	store i32 8, i32* %41			;init var: h
+	%42 = alloca i32				;decl var: i
+	store i32 9, i32* %42			;init var: i
+	%43 = alloca i32				;decl var: j
+	store i32 10, i32* %43			;init var: j
+	%44 = alloca i32				;decl var: temp1
+	%45 = load i32, i32* %34		;load value of a
+	%46 = load i32, i32* %35		;load value of b
+	%47 = add i32 %45, %46
+	store i32 %47, i32* %44			;init var: temp1
+	%48 = alloca i32				;decl var: temp2
+	%49 = load i32, i32* %36		;load value of c
+	%50 = load i32, i32* %37		;load value of d
+	%51 = add i32 %49, %50
+	store i32 %51, i32* %48			;init var: temp2
+	%52 = alloca i32				;decl var: temp3
+	%53 = load i32, i32* %38		;load value of e
+	%54 = load i32, i32* %39		;load value of f
+	%55 = add i32 %53, %54
+	store i32 %55, i32* %52			;init var: temp3
+	%56 = load i32, i32* %44		;load value of temp1
+	%57 = load i32, i32* %48		;load value of temp2
+	%58 = icmp sgt i32 %56, %57
+	%59 = zext i1 %58 to i32
+	%60 = icmp ne i32 %59, 0		;single RelExp, that is != 0
+	br i1 %60, label %61, label %70		;single LAndExp
+61:								 ; preds = 0
+	%62 = load i32, i32* %44		;load value of temp1
+	%63 = load i32, i32* %48		;load value of temp2
+	%64 = add i32 %62, %63
+	%65 = load i32, i32* %52		;load value of temp3
+	%66 = add i32 %64, %65
+	%67 = load i32, i32* %40		;load value of g
+	%68 = add i32 %66, %67
+	store i32 %68, i32* %16
+	call void @putstr(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @.str.32, i64 0, i64 0))
+	%69 = load i32, i32* %16		;load value of result
+	call void @putint(i32 %69)
+	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.33, i64 0, i64 0))
+	br label %79
+70:								 ; preds = 0
+	%71 = load i32, i32* %44		;load value of temp1
+	%72 = load i32, i32* %48		;load value of temp2
+	%73 = sub i32 %71, %72
+	%74 = load i32, i32* %52		;load value of temp3
+	%75 = add i32 %73, %74
+	%76 = load i32, i32* %41		;load value of h
+	%77 = add i32 %75, %76
+	store i32 %77, i32* %16
+	call void @putstr(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @.str.34, i64 0, i64 0))
+	%78 = load i32, i32* %16		;load value of result
+	call void @putint(i32 %78)
+	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.35, i64 0, i64 0))
+	br label %79
+79:								 ; preds = 70 61
+	%80 = load i32, i32* %16		;load value of result
+	%81 = load i32, i32* %34		;load value of a
+	%82 = add i32 %80, %81
+	%83 = load i32, i32* %35		;load value of b
+	%84 = add i32 %82, %83
+	%85 = load i32, i32* %36		;load value of c
+	%86 = add i32 %84, %85
+	%87 = load i32, i32* %37		;load value of d
+	%88 = add i32 %86, %87
+	%89 = load i32, i32* %38		;load value of e
+	%90 = add i32 %88, %89
+	%91 = load i32, i32* %39		;load value of f
+	%92 = add i32 %90, %91
+	%93 = load i32, i32* %40		;load value of g
+	%94 = add i32 %92, %93
+	%95 = load i32, i32* %41		;load value of h
+	%96 = add i32 %94, %95
+	%97 = load i32, i32* %42		;load value of i
+	%98 = add i32 %96, %97
+	%99 = load i32, i32* %43		;load value of j
+	%100 = add i32 %98, %99
+	store i32 %100, i32* %16
+	call void @putstr(i8* getelementptr inbounds ([9 x i8], [9 x i8]* @.str.36, i64 0, i64 0))
+	%101 = load i32, i32* %16		;load value of result
+	call void @putint(i32 %101)
+	call void @putstr(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str.37, i64 0, i64 0))
 	ret i32 0
 }
 
