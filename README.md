@@ -395,6 +395,8 @@ define dso_local i32 @fun2(i32 %0) {
 
 ### 6.1.2 后端代码生成设计
 
+- 以函数为单位管理栈帧、分配全局寄存器，以基本块为单位分配临时寄存器（寄存器分配实现在文档的优化部分）
+
 - 在LLVM IR中，存在i32和i8两种类型，但是在MIPS中，均使用32位字存储。
 
 - 栈帧结构（简化了部分结构）
@@ -417,29 +419,351 @@ define dso_local i32 @fun2(i32 %0) {
   ![mips-stackframe](assets/mips-stackframe.png)
 
 - 函数调用设计：
-  - 调用者：
-    1. 保存ra寄存器
-    2. 将参数压栈
-    3. 使用jal指令
-    4. 取v0返回值并填入相应寄存器（若有返回值）
-    5. 将调用过程增加的栈帧恢复（ra和参数）、恢复ra寄存器值
-    6. 继续其他指令……
-  - 被调用者：
-    1. 执行函数逻辑，若使用参数则取寄存器值或栈上值，返回值存入v0
-    2. 执行到ret指令或函数末尾，结束，先将栈指针恢复（addi sp, sp, <size>），其中size是存储的当前栈帧大小
-    3. 使用jr ra返回
+    ```
+    * 【调用者动作】：
+    *          1. 保存ra寄存器
+    *          2. 将后续需要用到的保留寄存器值存入栈中
+    *          3. 将参数压栈、[如果a0-a3有冲突（需要传递且后续要用到），则需要保存并恢复]
+    *          4. 更改sp寄存器的值
+    *          5. 使用jal指令
+    *          6. 取v0返回值并填入相应寄存器（若有返回值）
+    *          7. 将sp寄存器的值恢复
+    *          8. 恢复ra寄存器值、保存的寄存器值、恢复冲突的a0-a3寄存器值
+    *          9. 继续其他指令……
+    *  【被调用者动作】：
+    *          1. 执行函数逻辑，若使用参数则取寄存器值或栈上值
+    *          2. 执行到ret指令，返回值存入v0（若有）
+    *          3. 使用jr ra返回
+    ```
+    
+    - 需要注意的是，由于被调用者需要靠偏移取参数，所以在将参数压栈时，应该保证不会出现寄存器溢出的情况，否则会导致偏移与参数不对应。
 
 ## 6.2 编码后的设计
 
-将add、addi、sub、subi指令改为addu、addiu、subu、subiu后，testcase5通过，testcase6 oce、testcase8 wa：
-
-<img src="assets/image-20241210162013038.png" alt="image-20241210162013038" style="zoom:50%;" />
-
-
+- 遵循里氏替换原则和开放封闭原则，将LLVM IR和MIPS的指令都设置为一个接口或抽象类，并在具体的每条指令中重写对应的输出方法，调用者使用指令类的多态属性完成每条指令的输出。且当需要新增指令时，不需要修改原来的代码，只需要新增类并继承抽象父类或实现接口即可。
 
 # 代码优化设计
 
+## 1. 寄存器分配
 
+在目标代码生成的指导书中：
+
+>在 MIPS 这种**寄存器到寄存器**模型中，每个参与运算的值都必须被加载到寄存器中，因此在我们的 IR 中，参与运算的变量都应该对应一个寄存器，在 IR 中，我们将其称为**虚拟寄存器**。虚拟寄存器数目是无限的，但是当翻译为目标平台的汇编代码时，就需要将其映射到一组有限的寄存器中，这个过程就是**寄存器分配**。
+>
+>对于规范的寄存器分配，则需要考虑**全局寄存器**和**局部寄存器**的分配，分别对应 MIPS 中的 `s` 和 `t` 寄存器。……
+
+因此，**我在生成目标代码时就已经分配了寄存器**（因此优化前和优化后finalCycle差距可能不大）。以下是具体实现思路。
+
+### 1.1 跨块活跃变量：采用图着色法分配全局寄存器
+
+#### 1.1.1 数据流分析
+
+在LLVM IR每条具体指令类中添加`def`和`use`集，并在构造方法中将对应变量加入这两个集合。
+
+```java
+// 当有集合的in集发生变化时，继续迭代
+boolean changed = true;
+while(changed) {
+    changed = false;
+    for (int i = basicBlocks.size() - 1; i >= 0; i--) {
+        BasicBlock basicBlock = basicBlocks.get(i);
+        // BasicBlock的liveOut集合为其所有后继的liveIn集合的并集
+        for (BasicBlock succ: basicBlock.succs) {
+            basicBlock.liveOut.addAll(succ.liveIn);
+        }
+        // 计算每条指令的in集和out集
+        List<Instruction> instructions = basicBlock.instructions;
+        // BasicBlock的最后一条指令的liveOut集合即为liveOut集合
+        Set<Slot> succsLiveIn = new HashSet<>(basicBlock.liveOut);
+        for (int j = instructions.size() - 1; j >= 0; j--) {
+            Instruction instruction = instructions.get(j);
+            instruction.liveOut = new HashSet<>(succsLiveIn);   // 每条指令的liveOut集合为其后继的liveIn集合
+            instruction.liveIn = new HashSet<>(instruction.liveOut);
+            instruction.liveIn.removeAll(instruction.def);
+            instruction.liveIn.addAll(instruction.use);
+            succsLiveIn = new HashSet<>(instruction.liveIn);
+        }
+        // 最后一条指令的liveIn集合即为BasicBlock的liveIn集合
+        if (!basicBlock.liveIn.equals(succsLiveIn)) {
+            changed = true;
+            basicBlock.liveIn = new HashSet<>(succsLiveIn);
+        }
+    }
+```
+
+在对每条指令的`liveIn`和`liveOut`集计算的基础上，计算基本块的`liveIn`和`liveOut`集。
+
+需要注意在计算函数的跨块活跃变量时，将所有的`liveIn`和`liveOut`集变量加入后，需要删除所有作为函数参数的变量（包括指针型）。
+这是因为函数参数一概不分配寄存器，因此尽管在参数中出现，也不加入跨块活跃变量集合。
+
+#### 1.1.2 图着色算法
+
+为了简便，我在实现中对冲突的定义是：活跃范围重合。因此，在数据流分析后，同时出现在`liveIn`或`liveOut`集合的、以及在块内活跃范围冲突的变量视为冲突。
+
+```java
+// 构造冲突图
+Graph graph = new Graph(); // 用于移除节点得到队列
+Graph conflict = new Graph(); // 副本，用于保存冲突图
+for (Slot node: function.interBlockLive) {
+    graph.addNode(node);
+    conflict.addNode(node);
+}
+// 在liveIn和liveOut中同时出现的变量，即为冲突变量，添加边
+for (BasicBlock block: function.basicBlocks) {
+    for (Slot slot1: block.liveIn) {
+        for (Slot slot2: block.liveIn) {
+            if (slot1 != slot2 &&
+                function.interBlockLive.contains(slot1) &&
+                function.interBlockLive.contains(slot2)) {
+                graph.addEdge(slot1, slot2);
+                conflict.addEdge(slot1, slot2);
+            }
+        }
+    }
+    for (Slot slot1: block.liveOut) {
+        for (Slot slot2: block.liveOut) {
+            if (slot1 != slot2 &&
+                function.interBlockLive.contains(slot1) &&
+                function.interBlockLive.contains(slot2)) {
+                graph.addEdge(slot1, slot2);
+                conflict.addEdge(slot1, slot2);
+            }
+        }
+    }
+}
+// 对每个基本块，检查只出现在 in 或 out 中的变量，若活性范围冲突则也添加冲突边
+for (BasicBlock block: function.basicBlocks) {
+    Set<Slot> intersection = new HashSet<>(block.liveIn);   // 交集
+    intersection.retainAll(block.liveOut);
+
+    Set<Slot> liveInRemoveInter = new HashSet<>(block.liveIn);
+    liveInRemoveInter.removeAll(intersection);
+    Set<Slot> liveOutRemoveInter = new HashSet<>(block.liveOut);
+    liveOutRemoveInter.removeAll(intersection);
+
+    for (Slot slot1: liveInRemoveInter) {
+        for (Slot slot2: liveOutRemoveInter) {
+            if (function.interBlockLive.contains(slot1) &&
+                    function.interBlockLive.contains(slot2)) {
+                // 滤去函数参数等不跨块活跃的变量
+                Instruction defInst = null;
+                for (Instruction inst: block.instructions) {
+                    if (inst.def.contains(slot2)) {
+                        // slot2只出现在liveOut中，则有一条定义它的指令
+                        defInst = inst;
+                        break;
+                    }
+                }
+                // 定义后，slot1仍活跃，即为冲突
+                if (defInst.liveOut.contains(slot1)) {
+                    graph.addEdge(slot1, slot2);
+                    conflict.addEdge(slot1, slot2);
+                }
+            }
+        }
+    }
+}
+```
+
+其中保存冲突图的副本是为了在后续移走节点也能查询到每个变量的冲突情况。
+
+```java
+LinkedList<Slot> queue = new LinkedList<>();
+// 执行图着色算法
+while (graph.getNodesNum() > 0) {
+    boolean canRemove = false;
+    // 【为保证移出顺序，先对邻接表排序】
+    List<Map.Entry<Slot, Set<Slot>>> list = new ArrayList<>(graph.adjacencyList.entrySet());
+    list.sort(Comparator.comparingInt(o -> o.getKey().slotId));
+    for (Map.Entry<Slot, Set<Slot>> entry : list) {
+        if (graph.getDegree(entry.getKey()) < RegisterPool.savedRegisters.size()) {
+            queue.addLast(entry.getKey());
+            graph.removeNode(entry.getKey());
+            canRemove = true;
+            System.out.println("remove " + entry.getKey().toText());
+            break;
+        }
+    }
+    if (!canRemove) {
+        // 若无法删除节点，即图中存在度数大于等于寄存器数量的节点，保存在栈上
+        // TODO: 优化时，选择引用次数最少的节点进行合并
+        Slot remove = list.get(0).getKey();
+        graph.removeNode(remove);
+        conflict.removeNode(remove);    // 【不分配，移出冲突图】
+        System.out.println("spill " + remove.toText());
+    }
+}
+// 按照结点移走的反向顺序将点和边添加回去，并分配颜色
+while (!queue.isEmpty()) {
+    Slot slot = queue.removeLast();
+    graph.addNode(slot);
+    List<Register> available = new LinkedList<>(RegisterPool.savedRegisters);
+    for (Map.Entry<Slot, Set<Slot>> entry: graph.adjacencyList.entrySet()) {
+        if (conflict.adjacencyList.get(slot).contains(entry.getKey())) {
+            // 若已在图中的节点与此节点存在冲突
+            available.remove(registerPool.globalAllocation.get(entry.getKey()));
+            graph.addEdge(slot, entry.getKey());
+        }
+    }
+    // 挑选一个可用的寄存器着色
+    assert !available.isEmpty();
+    registerPool.globalAllocation.put(slot, available.get(0));
+}
+```
+
+这里对于选择哪个节点移除暂时没有实现选择算法，后续可能优化为引用次数最少的不分配全局寄存器。
+
+需要注意由于`HashMap`遍历顺序的不确定性，需要先将其排序再进行后续操作。
+
+### 1.2 不跨块活跃的变量：采用寄存器池分配临时寄存器
+
+在后端实现了一个`RegisterPool.java`类，虽然全局寄存器不使用寄存器池分配，但是实现这个类可以便于对变量对应的寄存器统一管理。生成目标代码时，可以统一使用提供的接口找到对应的寄存器。
+
+总的来说，我实现的临时寄存器池使用**FIFO算法**，维护一个`allocated`表和`tempQueue`，前者存储变量对应的寄存器，后者是一个记录分配顺序的队列。当新增变量时，从寄存器池中分配一个变量，并添加`allocated`表项、加入`tempQueue`队尾；当释放寄存器时，移除`allocated`表项以及`tempQueue`对应寄存器；当寄存器不够需要溢出时，取`tempQueue`的队首溢出到内存并分配。
+
+```java
+/**
+ * 分配临时寄存器并与Slot【绑定】
+ * @param slot 需要分配的slot
+ * @param curStackFrame 当前的栈帧
+ * @return 分配的寄存器
+ */
+private Register bindAllocTemp(Slot slot, StackFrame curStackFrame) {
+    // 如果是跨块活跃变量，分配保留寄存器，否则分配临时寄存器
+    for (Register r: tempRegisters) {
+        if (!allocated.containsValue(r)) {
+            // 若空闲，即找到
+            tempQueue.addLast(r);
+            allocated.put(slot, r);
+            return r;
+        }
+    }
+    // 溢出处理
+    return spill(slot, curStackFrame);
+}
+
+/**
+ * 溢出处理，将溢出寄存器的值存到栈上
+ * @param curStackFrame 当前的栈帧
+ * @param slot 需要分配的slot，可为null
+ */
+private Register spill(Slot slot, StackFrame curStackFrame) {
+    // FIFO算法，取出最早分配的寄存器
+    Register spillRegister = tempQueue.removeFirst();
+    Slot spillSlot = null;
+    for (Map.Entry<Slot, Register> entry: allocated.entrySet()) {
+        if (entry.getValue() == spillRegister) {
+            spillSlot = entry.getKey();
+        }
+    }
+    // 将寄存器的值存到栈上
+    curStackFrame.recordLocal(spillSlot, 4);
+    mipsCode.addMIPSInst(new SW(spillRegister, Register.SP, -curStackFrame.getSize()).setComment("\tspill reg of " + spillSlot.toText()));
+    // 移除allocated中的记录
+    allocated.remove(spillSlot);
+    if (slot != null) {
+        tempQueue.addLast(spillRegister);
+        allocated.put(slot, spillRegister);
+    }
+    return spillRegister;
+}
+```
+
+因此，每条指令的翻译步骤即：
+
+> 1. 使用 find 获取 use 的寄存器
+> 2. 使用 deallocUse 回收 use 中不活跃变量的寄存器
+> 3. 使用 allocDef 分配 def 使用的寄存器【allocDef可能返回null，此时需要保存到栈上】
+> 4. 使用 allocTemp 分配不绑定slot的寄存器
+> 5. 生成MIPS指令
+
+这些步骤不能随意调换顺序。具体来说：
+
+- 先`find`再`deallocUse`（否则找不到就释放了）
+- 先`deallocUse`再`allocDef`（这样可以立即使用use不再使用的寄存器，例如addiu \$t0, \$t0, -4这种指令）
+- 先`allocDef`再`allocTemp`。（否则，因为后者不绑定Slot，会分配到一样的寄存器而出错）
+
+> 完成到此：![image-20241216184912136](assets/image-20241216184912136.png)
+
+## 2. 基本块合并
+
+例如，在公开testcase7中，生成了如下代码：
+
+```assembly
+101:                          ; preds = 96
+    %102 = load i32, i32* %1      ;load value of i
+    %103 = getelementptr [10 x i32], [10 x i32]* @a, i32 0, i32 %102      ;get &a[%102]
+    %104 = load i32, i32* %103    ;load value of a[%102]
+    call void @putint(i32 %104)
+    call void @putstr(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.0, i64 0, i64 0))
+    %105 = load i32, i32* %1      ;load value of i
+    %106 = add i32 %105, 1
+    store i32 %106, i32* %1
+    br label %107
+107:                          ; preds = 101
+    br label %96
+108:								 ; preds = 96
+```
+
+经过基本块合并优化后：
+
+```assembly
+101:                          ; preds = 96
+    %102 = load i32, i32* %1      ;load value of i
+    %103 = getelementptr [10 x i32], [10 x i32]* @a, i32 0, i32 %102      ;get &a[%102]
+    %104 = load i32, i32* %103    ;load value of a[%102]
+    call void @putint(i32 %104)
+    call void @putstr(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.0, i64 0, i64 0))
+    %105 = load i32, i32* %1      ;load value of i
+    %106 = add i32 %105, 1
+    store i32 %106, i32* %1
+    br label %96
+107:                          ; preds = 96
+```
+
+![image-20241216140929262](assets/image-20241216140929262.png)
+
+## 3. 乘除法优化
+
+只针对第二个操作数为立即数的乘除指令进行优化。
+
+### 3.1 乘法优化
+
+对于乘数为0、1、2的整数幂、2的整数幂的相反数、2的整数幂-1、2的整数幂-2、2的整数幂+1进行优化，转为若干移位指令和加减指令。
+
+### 3.2 除法优化
+
+对于除数为2的整数幂、2的整数幂的相反数进行优化。
+
+此外，对于能转化为乘法和移位运算的进行优化，例如对于testcase7中：
+
+```assembly
+	div $t0, $t0, 5
+```
+
+被优化为：
+
+```assembly
+    slt $t1, $zero, $t0
+    bnez $t1, _L_divOptimize_0
+    subu $t0, $zero, $t0
+_L_divOptimize_0:
+    li $t2, 3435973837
+    multu $t0, $t2
+    mfhi $t0
+    sra $t0, $t0, 2
+    bnez $t1, _L_divOptimize_1
+    subu $t0, $zero, $t0
+_L_divOptimize_1:
+```
+
+需要注意，优化时，需要分正负两种情况，不然会产生错误。
+
+![image-20241216182758905](assets/image-20241216182758905.png)
+
+## 其他说明
+
+由于生成MIPS时直接完成寄存器分配这一“优化任务”，因此耗费了许多时间。最后因时间紧迫，其他优化暂时没有完成。
 
 >Author：吴自强22371495
 >
@@ -449,3 +773,5 @@ define dso_local i32 @fun2(i32 %0) {
 >- 2024.10.14：完成语法分析及此部分文档#4，修改#2.2，新增#3.2.3
 >- 2024.10.19：在期中模拟考发现回溯时未回溯已抛出错误导致多输出错误，修改#4.2.5
 >- 2024.11.2：完成语义分析，完成文档#5
+>- 2024.12.16：完成文档#6
+>- 2024.12.17：完成优化文档

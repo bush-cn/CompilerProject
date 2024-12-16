@@ -11,7 +11,6 @@ import midend.Visitor;
 import midend.llvm.Module;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Compiler {
@@ -32,10 +31,10 @@ public class Compiler {
                      new BufferedWriter(new FileWriter("error.txt"))){
             List<Token> tokenList = lexer.lex(br);              // 词法分析
             CompUnit compUnit = parser.parse(tokenList);        // 语法分析
-            Module module = visitor.visitCompUnit(compUnit);    // 语义分析、中间代码生成
+            Module module = visitor.visitCompUnit(compUnit, false);    // 语义分析、中间代码生成
+            MIPSCode mipsCode = translator.translate(module, false);   // 目标代码生成
             // 输出结果
             bw.write(module.toText());          // 输出LLVM IR
-            MIPSCode mipsCode = translator.translate(module);   // 目标代码生成
             bwMIPS.write(mipsCode.toString());    // 输出MIPS
             bwErr.write(CompileError.outputString());
         } catch (IOException e) {

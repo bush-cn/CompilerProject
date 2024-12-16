@@ -7,6 +7,7 @@ import midend.llvm.BasicBlock;
 import midend.llvm.Function;
 import midend.llvm.Module;
 import midend.llvm.Value;
+import midend.optimizer.BlockMerge;
 import midend.visitors.DeclVisitor;
 import midend.visitors.FuncVisitor;
 
@@ -48,8 +49,11 @@ public class Visitor {
     public boolean shouldCreateNewBlock = false;
 
     public Module module = new Module(); // llvm模块
+    public boolean optimize = false; // 是否进行优化
 
-    public Module visitCompUnit(CompUnit compUnit) {
+    public Module visitCompUnit(CompUnit compUnit, boolean optimize) {
+        this.optimize = optimize;
+
         for (Decl decl: compUnit.getDecls()) {
             DeclVisitor.visitDecl(decl);
         }
@@ -57,6 +61,10 @@ public class Visitor {
             FuncVisitor.visitFuncDef(funcDef);
         }
         FuncVisitor.visitMainFuncDef(compUnit.getMainFuncDef());
+
+        if (optimize) {
+            BlockMerge.MergeBlock(module);  // 基本块合并
+        }
         return module;
     }
 }

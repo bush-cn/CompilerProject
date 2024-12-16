@@ -46,7 +46,7 @@ public class RegisterPool {
             // 判断是否在栈上
             if (curStackFrame.isLocal(slot) ||
                     slot.slotId >= 4) {
-                // 从栈上加载局部变量（富偏移），或者大于4个的函数参数（非负偏移）
+                // 从栈上加载局部变量（负偏移），或者大于4个的函数参数（非负偏移）
                 Register register = allocTemp(curStackFrame);
                 mipsCode.addMIPSInst(new LW(register, Register.SP, curStackFrame.getOffset(slot)).
                         setComment("\t load slot " + slot.toText()));

@@ -11,6 +11,7 @@ import backend.instructions.RRInst.*;
 import backend.instructions.SYSCALL;
 import backend.optimizer.DataFlow;
 import backend.optimizer.Graph;
+import backend.optimizer.MulDivOptimizer;
 import midend.llvm.*;
 import midend.llvm.Module;
 import midend.llvm.globalvalues.ConstString;
@@ -45,12 +46,14 @@ public class Translator {
     // 跨基本块活跃变量
     private Set<Slot> interBlockLive;
 
+    public boolean optimize = false; // 是否进行优化
     /**
      * 对外接口，翻译中间代码为MIPS汇编代码
      * @param module LLVM模块
      * @return MIPS汇编代码
      */
-    public MIPSCode translate(Module module) {
+    public MIPSCode translate(Module module, boolean optimize) {
+        this.optimize = optimize;
         MIPSCode mipsCode = new MIPSCode();
         // 数据流分析
         DataFlow.liveVariable(module);
@@ -163,9 +166,9 @@ public class Translator {
      * 翻译大多数指令的步骤如下：
      *      1. 使用 find 获取 use 的寄存器
      *      2. 使用 deallocUse 回收 use 中不活跃变量的寄存器
-     *      2. 使用 allocDef 分配 def 使用的寄存器【allocDef可能返回null，此时需要保存到栈上】
-     *      3. 使用 allocTemp 分配不绑定slot的寄存器
-     *      3. 生成MIPS指令
+     *      3. 使用 allocDef 分配 def 使用的寄存器【allocDef可能返回null，此时需要保存到栈上】
+     *      4. 使用 allocTemp 分配不绑定slot的寄存器
+     *      5. 生成MIPS指令
      *
      * @param mipsCode MIPS代码
      * @param instruction 中间代码指令
@@ -337,8 +340,14 @@ public class Translator {
                     case add -> mipsCode.addMIPSInst(new ADDIU(r, s, imm));   // 加
                     case sub -> mipsCode.addMIPSInst(new SUBIU(r, s, imm));   // 减
                     // TODO: 开启优化，将乘法优化为移位、将除法优化为乘法？
-                    case mul -> mipsCode.addMIPSInst(new MULI(r, s, imm));  // 乘
-                    case sdiv -> mipsCode.addMIPSInst(new DIVI(r, s, imm));  // 除
+                    case mul -> {
+                        if (optimize) MulDivOptimizer.mulOptimize(mipsCode, r, s, imm, registerPool, curStackFrame);
+                        else mipsCode.addMIPSInst(new MULI(r, s, imm));
+                    }  // 乘
+                    case sdiv -> {
+                        if (optimize) MulDivOptimizer.divOptimize(mipsCode, r, s, imm, registerPool, curStackFrame);
+                        else mipsCode.addMIPSInst(new DIVI(r, s, imm));
+                    }  // 除
                     case srem -> mipsCode.addMIPSInst(new REMI(r, s, imm));  // 取余
                     case eq -> mipsCode.addMIPSInst(new SEQI(r, s, imm));
                     case ne -> mipsCode.addMIPSInst(new SNEI(r, s, imm));
@@ -369,7 +378,10 @@ public class Translator {
                     // 生成MIPS指令
                     switch (binaryInst.binaryOp) {
                         case add -> mipsCode.addMIPSInst(new ADDIU(r, s, imm));   // 加
-                        case mul -> mipsCode.addMIPSInst(new MULI(r, s, imm));  // 乘
+                        case mul -> {
+                            if (optimize) MulDivOptimizer.mulOptimize(mipsCode, r, s, imm, registerPool, curStackFrame);
+                            else mipsCode.addMIPSInst(new MULI(r, s, imm));
+                        }  // 乘
                         case eq -> mipsCode.addMIPSInst(new SEQI(r, s, imm));
                         case ne -> mipsCode.addMIPSInst(new SNEI(r, s, imm));
                     }

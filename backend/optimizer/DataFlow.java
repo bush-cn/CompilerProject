@@ -3,6 +3,7 @@ package backend.optimizer;
 import midend.llvm.*;
 import midend.llvm.Module;
 import midend.llvm.globalvalues.GlobalVariable;
+import midend.llvm.types.PointerType;
 
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +52,7 @@ public class DataFlow {
                     function.interBlockLive.addAll(basicBlock.liveIn);
                     function.interBlockLive.addAll(basicBlock.liveOut);
                     // 函数参数一概不分配寄存器，因此尽管在参数中出现，也不加入跨块活跃变量集合
+                    // 【指针参数也不分配】，因为参数值都在栈上呢
                     for (Function.Param param: function.params) {
                         function.interBlockLive.remove((Slot)param.value);
                     }

@@ -3,10 +3,8 @@ package backend.optimizer;
 import backend.Register;
 import backend.RegisterPool;
 import backend.StackFrame;
-import midend.llvm.BasicBlock;
-import midend.llvm.Function;
+import midend.llvm.*;
 import midend.llvm.Module;
-import midend.llvm.Slot;
 
 import java.util.*;
 
@@ -88,6 +86,38 @@ public class Graph {
                         function.interBlockLive.contains(slot2)) {
                         graph.addEdge(slot1, slot2);
                         conflict.addEdge(slot1, slot2);
+                    }
+                }
+            }
+        }
+        // 对每个基本块，检查只出现在 in 或 out 中的变量，若活性范围冲突则也添加冲突边（一开始没有考虑这个也能过测试点）
+        for (BasicBlock block: function.basicBlocks) {
+            Set<Slot> intersection = new HashSet<>(block.liveIn);   // 交集
+            intersection.retainAll(block.liveOut);
+
+            Set<Slot> liveInRemoveInter = new HashSet<>(block.liveIn);
+            liveInRemoveInter.removeAll(intersection);
+            Set<Slot> liveOutRemoveInter = new HashSet<>(block.liveOut);
+            liveOutRemoveInter.removeAll(intersection);
+
+            for (Slot slot1: liveInRemoveInter) {
+                for (Slot slot2: liveOutRemoveInter) {
+                    if (function.interBlockLive.contains(slot1) &&
+                            function.interBlockLive.contains(slot2)) {
+                        // 滤去函数参数等不跨块活跃的变量
+                        Instruction defInst = null;
+                        for (Instruction inst: block.instructions) {
+                            if (inst.def.contains(slot2)) {
+                                // slot2只出现在liveOut中，则有一条定义它的指令
+                                defInst = inst;
+                                break;
+                            }
+                        }
+                        // 定义后，slot1仍活跃，即为冲突
+                        if (defInst.liveOut.contains(slot1)) {
+                            graph.addEdge(slot1, slot2);
+                            conflict.addEdge(slot1, slot2);
+                        }
                     }
                 }
             }

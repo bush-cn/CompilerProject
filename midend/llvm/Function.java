@@ -31,6 +31,15 @@ public class Function extends GlobalValue {
         slots.add(slot);
         slot.slotId = slotTracker++;    // 在加入的时候分配编号
     }
+    public void removeSlot(Slot slot) {
+        slots.remove(slot);
+    }
+    public void reorderSlot() {
+        slotTracker = 0;
+        for (Slot slot: slots) {
+            slot.slotId = slotTracker++;
+        }
+    }
 
     /**
      * 构造函数（形参和自身slot在定义时再插入）
