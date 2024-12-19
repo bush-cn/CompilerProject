@@ -53,7 +53,6 @@ main_label_0:
 	addiu $t0, $t0, 0
 	la $t1, a + 4
 	lw $t1, 0($t1)
-	sll $t1, $t1, 0
 	addu $t0, $t0, $t1
 	subiu $t0, $t0, 0
 	slt $t1, $zero, $t0

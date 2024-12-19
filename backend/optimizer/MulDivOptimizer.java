@@ -24,20 +24,20 @@ public class MulDivOptimizer {
     }
 
     public static void mulOptimize(MIPSCode mipsCode, Register dest, Register src, int imm, RegisterPool registerPool, StackFrame stackFrame) {
-        if (isPowerOfTwo(imm)) {
-            mipsCode.addMIPSInst(new SLL(dest, src, log2(imm)));
-        }
-        else if (isPowerOfTwo(-imm)) {
-            mipsCode.addMIPSInst(new SLL(dest, src, log2(-imm)));
-            mipsCode.addMIPSInst(new SUBU(dest, Register.ZERO, dest));
-        }
-        else if (imm == 0) {
+        if (imm == 0) {
             mipsCode.addMIPSInst(new LI(dest, 0));
         }
         else if (imm == 1) {
             if (dest != src) {
                 mipsCode.addMIPSInst(new MOVE(dest, src));
             } // else pass
+        }
+        else if (isPowerOfTwo(imm)) {
+            mipsCode.addMIPSInst(new SLL(dest, src, log2(imm)));
+        }
+        else if (isPowerOfTwo(-imm)) {
+            mipsCode.addMIPSInst(new SLL(dest, src, log2(-imm)));
+            mipsCode.addMIPSInst(new SUBU(dest, Register.ZERO, dest));
         } else if (imm == 3) {
             if (dest != src) {
                 mipsCode.addMIPSInst(new ADDU(dest, src, src));
@@ -85,7 +85,12 @@ public class MulDivOptimizer {
     }
 
     public static void divOptimize(MIPSCode mipsCode, Register dest, Register src, int imm, RegisterPool registerPool, StackFrame stackFrame) {
-        if (isPowerOfTwo(imm)) {
+        if (imm == 1) {
+            if (dest != src) {
+                mipsCode.addMIPSInst(new MOVE(dest, src));
+            }
+        }
+        else if (isPowerOfTwo(imm)) {
             Register ifPosi = registerPool.allocTemp(stackFrame);
             mipsCode.addMIPSInst(new SLT(ifPosi, Register.ZERO, src));
             int label1 = count++, label2 = count++;
@@ -103,11 +108,6 @@ public class MulDivOptimizer {
             Register temp = registerPool.allocTemp(stackFrame);
             mipsCode.addMIPSInst(new SUBU(temp, Register.ZERO, src));
             divOptimize(mipsCode, dest, temp, -imm, registerPool, stackFrame);
-        }
-        else if (imm == 1) {
-            if (dest != src) {
-                mipsCode.addMIPSInst(new MOVE(dest, src));
-            }
         } else {
             // TODO: 除法优化为乘法和移位指令
             boolean isNeg = false;
