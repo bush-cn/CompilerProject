@@ -1,6 +1,5 @@
 package midend.visitors;
 
-import error.CompileError;
 import frontend.lexer.Token;
 import frontend.parser.declaration.Decl;
 import frontend.parser.expression.Exp;
@@ -146,12 +145,6 @@ public class StmtVisitor {
             visitor.checkoutBlock(endBlock);
         }
         else if (s instanceof ReturnStmt returnStmt) {
-            if (visitor.inFuncType == Symbol.SymbolType.VoidFunc || visitor.inFuncType == null) {
-                if (returnStmt.getExp() != null) {
-                    CompileError.raiseError(returnStmt.getReturnLine(), CompileError.ErrorType.f);
-                }
-            }
-
             if (visitor.inFuncType == Symbol.SymbolType.VoidFunc) {
                 visitor.curBasicBlock().addInst(
                         new RetInst(Type.Void, null)
@@ -180,17 +173,7 @@ public class StmtVisitor {
             }
         }
         else if (s instanceof PrintfStmt printfStmt) {
-            int paramNum = 0;
             String string = printfStmt.getStringConst().getStringConst().getValue();
-            for(int i = 0; i < string.length() - 1; i++) {
-                if (string.charAt(i) == '%' && (string.charAt(i+1) == 'd' || string.charAt(i+1) == 'c')) {
-                    paramNum ++;
-                }
-            }
-            if (paramNum != printfStmt.getExps().size()) {
-                CompileError.raiseError(printfStmt.getPrintfLine(), CompileError.ErrorType.l);
-            }
-
             string = string.substring(1, string.length() - 1);
             List<Exp> exps = printfStmt.getExps();
             int eIndex = 0;
@@ -228,10 +211,6 @@ public class StmtVisitor {
             }
         }
         else if (s instanceof BreakContinueStmt breakContinueStmt) {
-            if (!visitor.inLoop) {
-                CompileError.raiseError(breakContinueStmt.getBreakOrContinueLine(), CompileError.ErrorType.m);
-            }
-
             if (breakContinueStmt.getBreakOrContinue().getTokenType() == Token.TokenType.BREAKTK) {
                 visitor.curBasicBlock().addInst(
                         new BrInst(visitor.breakHop.label)
@@ -259,16 +238,6 @@ public class StmtVisitor {
             // LVal赋值语句
             LValStmt lValStmt = (LValStmt) s;
             Symbol symbol = visitor.curSymbolTab.lookupSymbol(lValStmt.getlVal().getIdent().getIdent().getValue());
-            if (symbol != null) {
-                Symbol.SymbolType type = symbol.type;
-                if (type == Symbol.SymbolType.ConstInt
-                        || type == Symbol.SymbolType.ConstChar
-                        || type == Symbol.SymbolType.ConstIntArray
-                        || type == Symbol.SymbolType.ConstCharArray) {
-                    CompileError.raiseError(lValStmt.getLValLine(), CompileError.ErrorType.h);
-                }
-            }
-
             // 计算右值【先计算！！再赋值】
             Value right;
             if (lValStmt.isAssignment()) {
@@ -314,15 +283,6 @@ public class StmtVisitor {
 
     public static void visitForStmt(ForStmt forStmt) {
         Value address = ExpVisitor.visitLValPointer(forStmt.getlVal());
-        if (visitor.curSymbolTab.lookupSymbol(forStmt.getlVal().getIdent().getIdent().getValue()) != null) {
-            Symbol.SymbolType type = visitor.curSymbolTab.lookupSymbol(forStmt.getlVal().getIdent().getIdent().getValue()).type;
-            if (type == Symbol.SymbolType.ConstInt
-                    || type == Symbol.SymbolType.ConstChar
-                    || type == Symbol.SymbolType.ConstIntArray
-                    || type == Symbol.SymbolType.ConstCharArray) {
-                CompileError.raiseError(forStmt.getLValLine(), CompileError.ErrorType.h);
-            }
-        }
         Type type = switch(visitor.curSymbolTab.lookupSymbol(forStmt.getlVal().getIdent().getIdent().getValue()).type) {
             case Int, IntArray, ConstInt, ConstIntArray ->  Type.i32;
             default -> Type.i8;

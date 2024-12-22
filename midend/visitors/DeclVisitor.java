@@ -1,6 +1,5 @@
 package midend.visitors;
 
-import error.CompileError;
 import frontend.lexer.Token;
 import frontend.parser.declaration.*;
 import frontend.parser.expression.ConstExp;
@@ -42,12 +41,7 @@ public class DeclVisitor {
     }
 
     public static void visitConstDef(ConstDef constDef, Btype btype) {
-        // 检查是否重命名
         Token token = constDef.getIdent().getIdent();
-        if (visitor.curSymbolTab.lookupCurSymTab(token.getValue()) != null) {
-            CompileError.raiseError(token.getLine(), CompileError.ErrorType.b);
-            return ;
-        }
 
         if (constDef.getConstExp() == null) {
             // 单个常量
@@ -162,12 +156,7 @@ public class DeclVisitor {
     }
 
     public static void visitVarDef(VarDef varDef, Btype btype) {
-        // 检查是否重命名
         Token token = varDef.getIdent().getIdent();
-        if (visitor.curSymbolTab.lookupCurSymTab(token.getValue()) != null) {
-            CompileError.raiseError(token.getLine(), CompileError.ErrorType.b);
-            return ;
-        }
 
         /*
         变量与常量不同，初始值可能无法计算，因此不可以先计算初始值

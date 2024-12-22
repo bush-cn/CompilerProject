@@ -23,7 +23,7 @@ public class Visitor {
     /**
      * 将综合属性、继承属性均放置在这里，可以避免在visit方法传参
      */
-    public SymbolTable curSymbolTab = SymbolTable.ROOT;
+    public SymbolTable curSymbolTab;
 
     public boolean inLoop = false;
     public BasicBlock continueHop, breakHop;
@@ -54,6 +54,7 @@ public class Visitor {
     public Module visitCompUnit(CompUnit compUnit, boolean optimize) {
         this.optimize = optimize;
 
+        curSymbolTab = SymbolTable.ROOT();
         for (Decl decl: compUnit.getDecls()) {
             DeclVisitor.visitDecl(decl);
         }

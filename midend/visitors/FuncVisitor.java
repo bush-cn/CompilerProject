@@ -1,6 +1,5 @@
 package midend.visitors;
 
-import error.CompileError;
 import frontend.lexer.Token;
 import frontend.parser.function.FuncDef;
 import frontend.parser.function.FuncFParam;
@@ -35,22 +34,11 @@ public class FuncVisitor {
 
     public static void visitFuncDef(FuncDef funcDef) {
         Token funcName = funcDef.getIdent().getIdent();
-        if (visitor.curSymbolTab.lookupCurSymTab(funcName.getValue()) != null) {
-            CompileError.raiseError(funcName.getLine(), CompileError.ErrorType.b);
-        }
 
         List<BlockItem> blockItems = funcDef.getBlock().getBlockItems();
-        if (funcDef.getFuncType().getFuncTypeToken().getTokenType() != Token.TokenType.VOIDTK) {
-            if (blockItems.isEmpty()) {
-                CompileError.raiseError(funcDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-            } else if (!(blockItems.get(blockItems.size() - 1) instanceof ReturnStmt)){
-                CompileError.raiseError(funcDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-            }
-        }
 
         List<Symbol.SymbolType> fParams = new ArrayList<>();
         Symbol.SymbolType funcType;
-        // 代码生成新增
         Type retType;
         switch (funcDef.getFuncType().getFuncTypeToken().getTokenType()) {
             case INTTK -> {
@@ -146,9 +134,6 @@ public class FuncVisitor {
 
     public static Function.Param visitFuncFParam(FuncFParam funcFParam) {
         Token token = funcFParam.getIdent().getIdent();
-        if (visitor.curSymbolTab.lookupCurSymTab(token.getValue()) != null) {
-            CompileError.raiseError(token.getLine(), CompileError.ErrorType.b);
-        }
 
         Value paramValue = new Slot(visitor.curFunction);
         Type type;
@@ -176,12 +161,6 @@ public class FuncVisitor {
 
     public static void visitMainFuncDef(MainFuncDef mainFuncDef) {
         List<BlockItem> blockItems = mainFuncDef.getBlock().getBlockItems();
-        if (blockItems.isEmpty()) {
-            CompileError.raiseError(mainFuncDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-        }
-        else if (!(blockItems.get(blockItems.size() - 1) instanceof ReturnStmt)) {
-            CompileError.raiseError(mainFuncDef.getBlock().rBraceLine, CompileError.ErrorType.g);
-        }
 
         visitor.curSymbolTab = new SymbolTable(visitor.curSymbolTab);
         visitor.inFuncType = Symbol.SymbolType.IntFunc;

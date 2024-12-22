@@ -1,6 +1,7 @@
 import backend.MIPSCode;
 import backend.Translator;
 import error.CompileError;
+import error.SemanticErrorHandler;
 import frontend.lexer.Lexer;
 import frontend.lexer.Token;
 import frontend.parser.CompUnit;
@@ -16,6 +17,7 @@ import java.util.List;
 public class Compiler {
     static Lexer lexer = Lexer.getInstance();
     static Parser parser = Parser.getInstance();
+    static SemanticErrorHandler errorHandler = SemanticErrorHandler.getInstance();
     static Visitor visitor = Visitor.getInstance();
 
     static Translator translator = Translator.getInstance();
@@ -31,11 +33,15 @@ public class Compiler {
                      new BufferedWriter(new FileWriter("error.txt"))){
             List<Token> tokenList = lexer.lex(br);              // 词法分析
             CompUnit compUnit = parser.parse(tokenList);        // 语法分析
-            Module module = visitor.visitCompUnit(compUnit, true);    // 语义分析、中间代码生成
-            MIPSCode mipsCode = translator.translate(module, true);   // 目标代码生成
-            // 输出结果
-            bw.write(module.toText());          // 输出LLVM IR
-            bwMIPS.write(mipsCode.toString());    // 输出MIPS
+            errorHandler.visitCompUnit(compUnit);               // 【语义错误检查】
+            if (!CompileError.hasSemanticError()) {
+                // 【若有语义错误则不进行代码生成】
+                Module module = visitor.visitCompUnit(compUnit, true);    // 中间代码生成
+                MIPSCode mipsCode = translator.translate(module, true);   // 目标代码生成
+                // 输出结果
+                bw.write(module.toText());          // 输出LLVM IR
+                bwMIPS.write(mipsCode.toString());    // 输出MIPS
+            }
             bwErr.write(CompileError.outputString());
         } catch (IOException e) {
             System.out.println("IOException: file operation failed");

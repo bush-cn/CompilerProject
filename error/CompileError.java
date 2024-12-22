@@ -9,6 +9,26 @@ public class CompileError extends Exception{
     // 在语法分析中，不能通过抛出处理，因此把错误都暂存到这里，最后统一输出
     public static List<CompileError> errors = new ArrayList<>();
 
+    /**
+     * 判断是否有语法错误
+     * 【若有语法错误则不进行代码生成】
+     * @return 是否有语法错误
+     */
+    public static boolean hasSemanticError() {
+        for (CompileError error: errors) {
+            if (!(error.errorType == ErrorType.a ||
+                    error.errorType == ErrorType.i ||
+                    error.errorType == ErrorType.j ||
+                    error.errorType == ErrorType.k)) {
+                // a: 词法错误
+                // i, j, k: 语法错误
+                // 其他错误都是语义错误
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static String outputString() {
         errors.sort(Comparator.comparingInt(o -> o.line));
         StringBuilder sb = new StringBuilder();
@@ -57,21 +77,5 @@ public class CompileError extends Exception{
 
     public void setLine(int line) {
         this.line = line;
-    }
-
-    public ErrorType getErrorType() {
-        return errorType;
-    }
-
-    public void setErrorType(ErrorType errorType) {
-        this.errorType = errorType;
-    }
-
-    public String getErrorInfo() {
-        return errorInfo;
-    }
-
-    public void setErrorInfo(String errorInfo) {
-        this.errorInfo = errorInfo;
     }
 }

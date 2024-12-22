@@ -1,6 +1,5 @@
 package midend.visitors;
 
-import error.CompileError;
 import frontend.lexer.Token;
 import frontend.parser.expression.*;
 import frontend.parser.expression.unaryexps.FunctionCall;
@@ -105,77 +104,15 @@ public class ExpVisitor {
     public static Value visitUnaryExp(UnaryExp unaryExp) {
         Value result; // 在最后计算UnaryOp
         if (unaryExp.getUnaryExpWithoutOp() instanceof FunctionCall functionCall) {
-            // 不会出现调用函数的标识符类型不匹配这种错误（“将变量当作函数调用”）
-            // 检查使用未定义符号（错误c）
             Token funcName = functionCall.getIdent().getIdent();
             Symbol symbol = visitor.curSymbolTab.lookupSymbol(funcName.getValue());
-            if (symbol == null) {
-                CompileError.raiseError(funcName.getLine(), CompileError.ErrorType.c);
-                return null;
-            }
-            // 接着检查函数参数个数不匹配（错误d）
-            assert symbol instanceof FuncSymbol;
             FuncSymbol funcSymbol = (FuncSymbol) symbol;
-            if (functionCall.getFuncRParams() == null) {
-                if (!funcSymbol.fParams.isEmpty()) {
-                    CompileError.raiseError(funcName.getLine(), CompileError.ErrorType.d);
-                    return null;
-                }
-            }
-            else {
-                if (funcSymbol.fParams.size() != functionCall.getFuncRParams().getExps().size()) {
-                    CompileError.raiseError(funcName.getLine(), CompileError.ErrorType.d);
-                    return null;
-                }
-            }
-            // 最后检查参数类型不匹配（错误e）
-            boolean raiseErrorE = false;  // 多个参数均不匹配时，只输出一条错误
-
-
             List<Function.Param> params = new ArrayList<>();
             for (int i = 0; i < funcSymbol.fParams.size(); i++) {
                 Symbol.SymbolType fParamType = funcSymbol.fParams.get(i); // 有且仅有四种
                 Exp exp = functionCall.getFuncRParams().getExps().get(i);
-                // 【错误处理】
-                // 【如果传值为数组类型，则应由FuncRParam一路推导至Ident，不存在任何其他符号】
-                if (exp.getAddExp().getMulExp().getUnaryExp().getUnaryExpWithoutOp() instanceof PrimaryExp primaryExp) {
-                    if (primaryExp instanceof LVal lVal) {
-                        Token t = lVal.getIdent().getIdent();
-                        Symbol s = visitor.curSymbolTab.lookupSymbol(t.getValue());
-                        // 常量数组不作为参数传入到函数中
-                        // 那么有且仅有两种情况下传入的exp为数组，且符号一定已经填入
-                        if (lVal.getExp() == null && s != null && s.type == Symbol.SymbolType.IntArray) {
-                            // 传入的参数为int型数组
-                            if (fParamType != Symbol.SymbolType.IntArray) {
-                                raiseErrorE = true;
-                            }
-                        } else if (lVal.getExp() == null && s != null && s.type == Symbol.SymbolType.CharArray) {
-                            // 传入的参数为char型数组
-                            if (fParamType != Symbol.SymbolType.CharArray) {
-                                raiseErrorE = true;
-                            }
-                        } else {
-                            // 【剩余情况均为：传入的参数exp是变量而不是数组】
-                            if (fParamType == Symbol.SymbolType.CharArray
-                                    || fParamType == Symbol.SymbolType.IntArray) {
-                                raiseErrorE = true;
-                            }
-                        }
-                    } else {
-                        // 【剩余情况均为：传入的参数exp是变量而不是数组】
-                        if (fParamType == Symbol.SymbolType.CharArray
-                                || fParamType == Symbol.SymbolType.IntArray) {
-                            raiseErrorE = true;
-                        }
-                    }
-                } // 【剩余情况均为：传入的参数exp是变量而不是数组】
-                else {
-                    if (fParamType == Symbol.SymbolType.CharArray
-                            || fParamType == Symbol.SymbolType.IntArray) {
-                        raiseErrorE = true;
-                    }
-                }
-                // 【代码生成中新增】需要记录调用函数的实参：
+
+                // 记录调用函数的实参：
                 Type paramType = switch (fParamType) {
                     case Int, ConstInt -> Type.i32;
                     case Char, ConstChar -> Type.i8;
@@ -236,10 +173,7 @@ public class ExpVisitor {
                 }
 
             }
-            if (raiseErrorE) {
-                CompileError.raiseError(funcName.getLine(), CompileError.ErrorType.e);
-            }
-            // 【代码生成新增】生成call指令
+            // 生成call指令
             Type retType;
             switch (funcSymbol.type) {
                 case IntFunc -> {
@@ -332,10 +266,6 @@ public class ExpVisitor {
     public static Value visitLValPointer(LVal lVal) {
         Token token = lVal.getIdent().getIdent();
         Symbol symbol = visitor.curSymbolTab.lookupSymbol(token.getValue());
-        if (symbol == null) {
-            CompileError.raiseError(token.getLine(), CompileError.ErrorType.c);
-            return null; // 代码生成中，不会执行到此
-        }
 
         if (lVal.getExp() != null) {
             // 数组
@@ -383,12 +313,6 @@ public class ExpVisitor {
     public static Value visitLValValue(LVal lVal) {
         Token token = lVal.getIdent().getIdent();
         Symbol symbol = visitor.curSymbolTab.lookupSymbol(token.getValue());
-        if (symbol == null) {
-            CompileError.raiseError(token.getLine(), CompileError.ErrorType.c);
-            return null; // 代码生成中，不会执行到此
-        }
-
-        // 形参的的address为null，值为curValue
 
         if (lVal.getExp() != null) {
             // 数组

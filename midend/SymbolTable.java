@@ -5,7 +5,12 @@ import java.util.List;
 
 public class SymbolTable {
     private static int scopeIdCounter = 1;
-    public static final SymbolTable ROOT = new SymbolTable(); // 根符号表，即全局符号表
+
+    // 创建一个新的根符号表，即全局作用域对应的符号表
+    public static SymbolTable ROOT() {
+        scopeIdCounter = 1;
+        return new SymbolTable();
+    }
 
     public SymbolTable fatherTable; // 上一层次的符号表。若为null则为根符号表。
     public List<SymbolTable> childrenTables = new ArrayList<>(); // 下一层次的符号表
